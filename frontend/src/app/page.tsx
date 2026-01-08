@@ -7,20 +7,8 @@
 
 import Link from 'next/link';
 import { Navigation } from '@/components';
-import { useState, useEffect } from 'react';
 
 export default function HomePage() {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
   return (
     <div>
       <Navigation />
@@ -34,11 +22,12 @@ export default function HomePage() {
       >
         {/* Hero Section */}
         <section
+          className="hero-section"
           style={{
-            minHeight: isMobile ? 'auto' : 'calc(100vh - 80px)',
+            minHeight: 'calc(100vh - 80px)',
             display: 'flex',
             alignItems: 'center',
-            padding: isMobile ? 'var(--space-12) var(--space-4)' : 'var(--space-16) var(--space-6)',
+            padding: 'var(--space-16) var(--space-6)',
             position: 'relative',
             zIndex: 1,
           }}
@@ -46,15 +35,14 @@ export default function HomePage() {
           <div
             className="container"
             style={{
-              display: isMobile ? 'block' : 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-              gap: isMobile ? 'var(--space-8)' : 'var(--space-16)',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 'var(--space-16)',
               alignItems: 'center',
-              textAlign: isMobile ? 'center' : 'left',
             }}
           >
             {/* Left: Content */}
-            <div style={{ maxWidth: '600px', width: '100%' }}>
+            <div className="hero-content" style={{ maxWidth: '600px', width: '100%' }}>
               {/* Badge */}
               <div
                 style={{
@@ -66,12 +54,11 @@ export default function HomePage() {
                   borderRadius: 'var(--radius-full)',
                   marginBottom: 'var(--space-6)',
                   boxShadow: '0 2px 8px rgba(139, 94, 60, 0.15)',
-                  justifyContent: 'center',
                 }}
               >
                 <span
+                  className="badge-text"
                   style={{
-                    fontSize: isMobile ? 'var(--text-xs)' : 'var(--text-sm)',
                     fontWeight: 600,
                     color: 'var(--accent-primary)',
                     letterSpacing: '0.5px',
@@ -83,10 +70,10 @@ export default function HomePage() {
 
               {/* Heading */}
               <h1
+                className="hero-title"
                 style={{
-                  fontSize: isMobile ? '2rem' : 'clamp(2.5rem, 6vw, 4.5rem)',
                   fontWeight: 800,
-                  lineHeight: isMobile ? 1.2 : 1.05,
+                  lineHeight: 1.05,
                   marginBottom: 'var(--space-6)',
                   background: 'linear-gradient(135deg, var(--coffee-espresso) 0%, var(--coffee-mocha) 50%, var(--accent-primary) 100%)',
                   WebkitBackgroundClip: 'text',
@@ -95,28 +82,24 @@ export default function HomePage() {
                   letterSpacing: '-0.02em',
                 }}
               >
-                {isMobile ? 'Organize Tasks.' : (
-                  <>
-                    Organize Tasks.
-                    <br />
-                    <span
-                      style={{
-                        background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--coffee-caramel) 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}
-                    >
-                      Achieve More.
-                    </span>
-                  </>
-                )}
+                Organize Tasks.
+                <br />
+                <span
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--coffee-caramel) 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  Achieve More.
+                </span>
               </h1>
 
               {/* Description */}
               <p
+                className="hero-description"
                 style={{
-                  fontSize: isMobile ? '1rem' : 'clamp(1rem, 2vw, 1.25rem)',
                   color: 'var(--text-secondary)',
                   marginBottom: 'var(--space-10)',
                   lineHeight: 1.8,
@@ -129,19 +112,18 @@ export default function HomePage() {
 
               {/* CTA Buttons */}
               <div
+                className="cta-buttons"
                 style={{
                   display: 'flex',
                   gap: 'var(--space-4)',
                   flexWrap: 'wrap',
-                  justifyContent: isMobile ? 'center' : 'flex-start',
                 }}
               >
                 <Link
                   href="/signup"
-                  className="btn btn-primary btn-lg"
+                  className="btn btn-primary btn-lg hero-btn-primary"
                   style={{
-                    padding: isMobile ? 'var(--space-4) var(--space-8)' : 'var(--space-5) var(--space-10)',
-                    fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-base)',
+                    padding: 'var(--space-5) var(--space-10)',
                     fontWeight: 600,
                     boxShadow: '0 4px 14px rgba(139, 94, 60, 0.3)',
                     background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--coffee-mocha) 100%)',
@@ -149,39 +131,37 @@ export default function HomePage() {
                     transition: 'all 0.3s ease',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    minWidth: isMobile ? 'unset' : '180px',
+                    minWidth: '180px',
                     justifyContent: 'center',
                   }}
                 >
                   Get Started Free
-                  {!isMobile && (
-                    <svg
-                      width={20}
-                      height={20}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{ marginLeft: '8px' }}
-                    >
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  )}
+                  <svg
+                    className="desktop-icon"
+                    width={20}
+                    height={20}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ marginLeft: '8px' }}
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
                 </Link>
                 <Link
                   href="/signin"
-                  className="btn btn-secondary btn-lg"
+                  className="btn btn-secondary btn-lg hero-btn-secondary"
                   style={{
-                    padding: isMobile ? 'var(--space-4) var(--space-8)' : 'var(--space-5) var(--space-10)',
-                    fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-base)',
+                    padding: 'var(--space-5) var(--space-10)',
                     fontWeight: 600,
                     borderWidth: '2px',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    minWidth: isMobile ? 'unset' : '140px',
+                    minWidth: '140px',
                     justifyContent: 'center',
                   }}
                 >
@@ -191,17 +171,18 @@ export default function HomePage() {
 
               {/* Stats/Social Proof */}
               <div
+                className="stats-grid"
                 style={{
                   marginTop: 'var(--space-12)',
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: isMobile ? 'var(--space-4)' : 'var(--space-8)',
+                  gap: 'var(--space-8)',
                 }}
               >
                 <div>
                   <div
+                    className="stat-number"
                     style={{
-                      fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
                       fontWeight: 700,
                       color: 'var(--accent-primary)',
                       marginBottom: 'var(--space-1)',
@@ -210,8 +191,8 @@ export default function HomePage() {
                     1000+
                   </div>
                   <div
+                    className="stat-label"
                     style={{
-                      fontSize: isMobile ? 'var(--text-xs)' : 'var(--text-sm)',
                       color: 'var(--text-muted)',
                     }}
                   >
@@ -220,8 +201,8 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div
+                    className="stat-number"
                     style={{
-                      fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
                       fontWeight: 700,
                       color: 'var(--accent-primary)',
                       marginBottom: 'var(--space-1)',
@@ -230,8 +211,8 @@ export default function HomePage() {
                     10K+
                   </div>
                   <div
+                    className="stat-label"
                     style={{
-                      fontSize: isMobile ? 'var(--text-xs)' : 'var(--text-sm)',
                       color: 'var(--text-muted)',
                     }}
                   >
@@ -240,8 +221,8 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div
+                    className="stat-number"
                     style={{
-                      fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
                       fontWeight: 700,
                       color: 'var(--accent-primary)',
                       marginBottom: 'var(--space-1)',
@@ -250,8 +231,8 @@ export default function HomePage() {
                     99%
                   </div>
                   <div
+                    className="stat-label"
                     style={{
-                      fontSize: isMobile ? 'var(--text-xs)' : 'var(--text-sm)',
                       color: 'var(--text-muted)',
                     }}
                   >
@@ -261,8 +242,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: Productivity Illustration - Hide on mobile */}
-            {!isMobile && (
+            {/* Right: Productivity Illustration */}
+            <div className="hero-illustration">
               <div
                 style={{
                   display: 'flex',
@@ -412,33 +393,34 @@ export default function HomePage() {
                   </svg>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </section>
 
         {/* Features Section */}
         <section
+          className="features-section"
           style={{
-            padding: isMobile ? 'var(--space-12) var(--space-4)' : 'clamp(var(--space-12), 6vw, var(--space-20)) var(--space-4)',
+            padding: 'clamp(var(--space-12), 6vw, var(--space-20)) var(--space-4)',
             background: 'var(--bg-card)',
           }}
         >
           <div className="container">
             <h2
+              className="features-title"
               style={{
                 textAlign: 'center',
                 marginBottom: 'var(--space-4)',
-                fontSize: isMobile ? '1.5rem' : 'clamp(1.8rem, 4vw, 2.5rem)',
                 fontWeight: 700,
               }}
             >
               Everything You Need to Stay Productive
             </h2>
             <p
+              className="features-subtitle"
               style={{
                 textAlign: 'center',
                 marginBottom: 'var(--space-12)',
-                fontSize: isMobile ? '1rem' : 'var(--text-lg)',
                 color: 'var(--text-muted)',
                 maxWidth: '600px',
                 marginLeft: 'auto',
@@ -449,14 +431,15 @@ export default function HomePage() {
             </p>
 
             <div
+              className="features-grid"
               style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: isMobile ? 'var(--space-6)' : 'var(--space-8)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: 'var(--space-8)',
               }}
             >
               {/* Feature 1 */}
-              <div className="card" style={{ padding: isMobile ? 'var(--space-5)' : 'clamp(var(--space-6), 4vw, var(--space-8))' }}>
+              <div className="card feature-card">
                 <div
                   style={{
                     width: '56px',
@@ -480,7 +463,7 @@ export default function HomePage() {
               </div>
 
               {/* Feature 2 */}
-              <div className="card" style={{ padding: isMobile ? 'var(--space-5)' : 'clamp(var(--space-6), 4vw, var(--space-8))' }}>
+              <div className="card feature-card">
                 <div
                   style={{
                     width: '56px',
@@ -505,7 +488,7 @@ export default function HomePage() {
               </div>
 
               {/* Feature 3 */}
-              <div className="card" style={{ padding: isMobile ? 'var(--space-5)' : 'clamp(var(--space-6), 4vw, var(--space-8))' }}>
+              <div className="card feature-card">
                 <div
                   style={{
                     width: '56px',
@@ -535,18 +518,20 @@ export default function HomePage() {
 
         {/* Footer */}
         <footer
+          className="footer"
           style={{
-            padding: isMobile ? 'var(--space-8) var(--space-4)' : 'clamp(var(--space-8), 5vw, var(--space-12)) var(--space-4)',
+            padding: 'clamp(var(--space-8), 5vw, var(--space-12)) var(--space-4)',
             background: 'var(--bg-secondary)',
             borderTop: '1px solid var(--border-subtle)',
           }}
         >
           <div className="container">
             <div
+              className="footer-grid"
               style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: isMobile ? 'var(--space-8)' : 'var(--space-10)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 'var(--space-10)',
                 marginBottom: 'var(--space-10)',
               }}
             >
@@ -580,6 +565,7 @@ export default function HomePage() {
 
             {/* Bottom Bar */}
             <div
+              className="footer-bottom"
               style={{
                 paddingTop: 'var(--space-8)',
                 borderTop: '1px solid var(--border-subtle)',
@@ -588,7 +574,6 @@ export default function HomePage() {
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 gap: 'var(--space-4)',
-                flexDirection: isMobile ? 'column' : 'row',
               }}
             >
               <p
@@ -596,7 +581,6 @@ export default function HomePage() {
                   margin: 0,
                   fontSize: 'var(--text-sm)',
                   color: 'var(--text-muted)',
-                  textAlign: isMobile ? 'center' : 'left',
                 }}
               >
                 © 2025 ActionMind AI. All rights reserved.
@@ -609,7 +593,6 @@ export default function HomePage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--space-2)',
-                  textAlign: isMobile ? 'center' : 'left',
                 }}
               >
                 Made with
@@ -632,8 +615,95 @@ export default function HomePage() {
           </div>
         </footer>
 
-        {/* Animation Styles */}
+        {/* Responsive CSS */}
         <style jsx>{`
+          /* Mobile styles (< 768px) */
+          @media (max-width: 767px) {
+            .hero-section {
+              min-height: auto !important;
+              padding: var(--space-12) var(--space-4) !important;
+            }
+
+            .container {
+              display: block !important;
+              gridTemplateColumns: 1fr !important;
+              gap: var(--space-8) !important;
+              text-align: center;
+            }
+
+            .hero-content {
+              maxWidth: 100% !important;
+            }
+
+            .hero-title {
+              font-size: 2rem !important;
+              line-height: 1.2 !important;
+            }
+
+            .hero-description {
+              font-size: 1rem !important;
+            }
+
+            .hero-btn-primary,
+            .hero-btn-secondary {
+              padding: var(--space-4) var(--space-8) !important;
+              font-size: var(--text-sm) !important;
+              min-width: unset !important;
+            }
+
+            .desktop-icon {
+              display: none !important;
+            }
+
+            .stats-grid {
+              gridTemplateColumns: 1fr !important;
+              gap: var(--space-4) !important;
+            }
+
+            .stat-number {
+              font-size: var(--text-xl) !important;
+            }
+
+            .stat-label {
+              font-size: var(--text-xs) !important;
+            }
+
+            .hero-illustration {
+              display: none !important;
+            }
+
+            .features-grid {
+              gridTemplateColumns: 1fr !important;
+              gap: var(--space-6) !important;
+            }
+
+            .feature-card {
+              padding: var(--space-5) !important;
+            }
+
+            .footer-grid {
+              gridTemplateColumns: 1fr !important;
+              gap: var(--space-8) !important;
+            }
+
+            .footer-bottom {
+              flex-direction: column !important;
+              textAlign: center;
+            }
+          }
+
+          /* Tablet styles (768px - 1023px) */
+          @media (min-width: 768px) and (max-width: 1023px) {
+            .hero-title {
+              font-size: clamp(2rem, 5vw, 3rem) !important;
+            }
+
+            .features-grid {
+              gridTemplateColumns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+            }
+          }
+
+          /* Animation keyframes */
           @keyframes float {
             0%,
             100% {

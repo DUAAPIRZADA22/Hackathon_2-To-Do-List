@@ -543,8 +543,28 @@ a:hover {
   background: var(--border-strong);
 }
 
-/* === Desktop-Only Responsive === */
-/* Standard desktop: 1024px - 1439px */
+/* === Mobile-First Responsive Breakpoints === */
+
+/* Mobile: < 640px */
+@media (max-width: 639px) {
+  .container {
+    padding: 0 var(--space-4);
+  }
+
+  /* Mobile typography */
+  h1 { font-size: var(--text-2xl); }
+  h2 { font-size: var(--text-xl); }
+  h3 { font-size: var(--text-lg); }
+}
+
+/* Tablet: 640px - 1023px */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .container {
+    padding: 0 var(--space-5);
+  }
+}
+
+/* Desktop: 1024px - 1439px */
 @media (min-width: 1024px) {
   .container {
     max-width: 1200px;
@@ -563,5 +583,31 @@ a:hover {
 @media (min-width: 1920px) {
   .container {
     max-width: 1600px;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767px) {
+  /* Ensure touch targets are minimum 44x44px */
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile spacing adjustments */
+  .card {
+    padding: var(--space-4);
+  }
+
+  /* Better mobile text rendering */
+  body {
+    font-size: 16px; /* Prevent iOS zoom on input focus */
+  }
+
+  /* Mobile form inputs */
+  .input,
+  .select,
+  .textarea {
+    font-size: 16px; /* Prevent iOS zoom */
   }
 }

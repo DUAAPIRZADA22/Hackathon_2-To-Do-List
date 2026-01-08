@@ -128,7 +128,7 @@ export default function TasksPage() {
     <>
       <Navigation />
       <Sidebar />
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', marginLeft: '260px' }}>
+      <div className="tasks-content" style={{ minHeight: '100vh', background: 'var(--bg-primary)', marginLeft: '260px' }}>
         {/* Page Header */}
         <div
           style={{
@@ -493,6 +493,15 @@ export default function TasksPage() {
           </div>
         </main>
       </div>
+
+      {/* Responsive CSS for mobile */}
+      <style jsx>{`
+        @media (max-width: 767px) {
+          .tasks-content {
+            marginLeft: 0 !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

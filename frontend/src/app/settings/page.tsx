@@ -86,7 +86,7 @@ export default function SettingsPage() {
     <>
       <Navigation />
       <Sidebar />
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', marginLeft: '260px' }}>
+      <div className="settings-content" style={{ minHeight: '100vh', background: 'var(--bg-primary)', marginLeft: '260px' }}>
         {/* Settings Header */}
         <div
           style={{
@@ -476,6 +476,15 @@ export default function SettingsPage() {
           </div>
         </main>
       </div>
+
+      {/* Responsive CSS for mobile */}
+      <style jsx>{`
+        @media (max-width: 767px) {
+          .settings-content {
+            marginLeft: 0 !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

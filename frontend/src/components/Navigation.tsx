@@ -325,15 +325,23 @@ export function Navigation() {
       )}
 
       <style jsx>{`
-        @media (max-width: 768px) {
+        @media (max-width: 767px) {
           .desktop-nav {
             display: none !important;
           }
           .mobile-menu-btn {
-            display: block !important;
+            display: flex !important;
           }
           .mobile-menu {
             display: block !important;
+          }
+        }
+        @media (min-width: 768px) {
+          .mobile-menu-btn {
+            display: none !important;
+          }
+          .mobile-menu {
+            display: none !important;
           }
         }
       `}</style>
