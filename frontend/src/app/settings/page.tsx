@@ -484,6 +484,53 @@ export default function SettingsPage() {
             marginLeft: 0 !important;
           }
         }
+
+        @media (max-width: 639px) {
+          .settings-content {
+            marginLeft: 0 !important;
+          }
+
+          main {
+            padding: var(--space-6) var(--space-4) !important;
+          }
+
+          main > .container {
+            gridTemplateColumns: 1fr !important;
+            gap: var(--space-6) !important;
+          }
+
+          .card {
+            padding: var(--space-5) !important;
+          }
+
+          h1 {
+            fontSize: var(--text-2xl) !important;
+          }
+
+          input,
+          select,
+          textarea {
+            fontSize: 16px !important;
+          }
+
+          button[type='submit'] {
+            fontSize: var(--text-base) !important;
+            minHeight: 48px !important;
+          }
+        }
+
+        @media (min-width: 640px) and (max-width: 767px) {
+          main > .container {
+            gridTemplateColumns: 1fr !important;
+          }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+          main > .container {
+            gridTemplateColumns: minmax(200px, 240px) minmax(0, 1fr) !important;
+            gap: var(--space-6) !important;
+          }
+        }
       `}</style>
     </>
   );

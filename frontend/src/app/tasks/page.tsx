@@ -2,7 +2,7 @@
 
 /**
  * Tasks Page - View and manage all tasks
- * Separate page from dashboard for better organization
+ * Fully responsive - mobile optimized
  */
 
 import { useState, useEffect } from 'react';
@@ -44,7 +44,6 @@ export default function TasksPage() {
 
   const handleUpdateTask = async (taskId: number, updates: Partial<Task>) => {
     try {
-      // Convert Partial<Task> to TaskUpdateRequest by removing null values
       const updateRequest: TaskUpdateRequest = {};
       if (updates.title !== undefined) updateRequest.title = updates.title;
       if (updates.description !== undefined) updateRequest.description = updates.description || undefined;
@@ -103,7 +102,6 @@ export default function TasksPage() {
     return tasks.filter((task) => task.status === filter);
   };
 
-  // Calculate stats
   const stats = {
     total: tasks.length,
     completed: tasks.filter((t) => t.status === 'done').length,
@@ -130,31 +128,18 @@ export default function TasksPage() {
       <Sidebar />
       <div className="tasks-content" style={{ minHeight: '100vh', background: 'var(--bg-primary)', marginLeft: '260px' }}>
         {/* Page Header */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, var(--coffee-latte) 0%, var(--accent-primary) 100%)',
-            padding: 'var(--space-8) var(--space-4)',
-          }}
-        >
+        <div className="tasks-page-header">
           <div className="container" style={{ maxWidth: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-              <div>
-                <h1 style={{ color: 'white', marginBottom: 'var(--space-2)', fontSize: 'var(--text-3xl)' }}>My Tasks</h1>
-                <p style={{ color: 'rgba(255,255,255,0.9)', marginBottom: 0, fontSize: 'var(--text-base)' }}>
+            <div className="tasks-header-content">
+              <div className="tasks-header-text">
+                <h1 className="tasks-title">My Tasks</h1>
+                <p className="tasks-subtitle">
                   {stats.total} {stats.total === 1 ? 'task' : 'tasks'} • {stats.completed} completed
                 </p>
               </div>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="btn"
-                style={{
-                  background: 'white',
-                  color: 'var(--accent-primary)',
-                  padding: 'var(--space-4) var(--space-6)',
-                  fontWeight: 600,
-                  fontSize: 'var(--text-base)',
-                  minHeight: '46px',
-                }}
+                className="btn tasks-create-btn"
               >
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M12 5v14M5 12h14" />
@@ -166,92 +151,37 @@ export default function TasksPage() {
         </div>
 
         {/* Main Content */}
-        <main className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
+        <main className="container tasks-main" style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
           {/* Stats Cards */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 'var(--space-6)',
-              marginBottom: 'var(--space-10)',
-            }}
-          >
-            <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                {stats.total}
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-                Total Tasks
-              </div>
+          <div className="tasks-stats-grid">
+            <div className="card tasks-stat-card">
+              <div className="tasks-stat-number tasks-stat-total">{stats.total}</div>
+              <div className="tasks-stat-label">Total Tasks</div>
             </div>
-            <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--success)' }}>
-                {stats.completed}
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-                Completed
-              </div>
+            <div className="card tasks-stat-card">
+              <div className="tasks-stat-number tasks-stat-completed">{stats.completed}</div>
+              <div className="tasks-stat-label">Completed</div>
             </div>
-            <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--info)' }}>
-                {stats.inProgress}
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-                In Progress
-              </div>
+            <div className="card tasks-stat-card">
+              <div className="tasks-stat-number tasks-stat-progress">{stats.inProgress}</div>
+              <div className="tasks-stat-label">In Progress</div>
             </div>
-            <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--warning)' }}>
-                {stats.pending}
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-                Pending
-              </div>
+            <div className="card tasks-stat-card">
+              <div className="tasks-stat-number tasks-stat-pending">{stats.pending}</div>
+              <div className="tasks-stat-label">Pending</div>
             </div>
           </div>
 
           {/* Filter Tabs */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 'var(--space-8)',
-              flexWrap: 'wrap',
-              gap: 'var(--space-4)',
-            }}
-          >
-            <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-              All Tasks
-            </h2>
+          <div className="tasks-filter-section">
+            <h2 className="tasks-filter-title">All Tasks</h2>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: 'var(--space-2)',
-                background: 'var(--bg-card)',
-                padding: 'var(--space-2)',
-                borderRadius: 'var(--radius-xl)',
-                border: '1px solid var(--border-subtle)',
-                flexWrap: 'wrap',
-              }}
-            >
+            <div className="tasks-filter-buttons">
               {(['all', 'todo', 'in_progress', 'done'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className="btn-ghost"
-                  style={{
-                    flex: '1 1 auto',
-                    padding: 'var(--space-3) var(--space-5)',
-                    borderRadius: 'var(--radius-lg)',
-                    background: filter === f ? 'var(--accent-light)' : 'transparent',
-                    color: filter === f ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                    fontWeight: filter === f ? 600 : 500,
-                    fontSize: 'var(--text-sm)',
-                    transition: 'all var(--transition-fast)',
-                    minHeight: '42px',
-                  }}
+                  className={`tasks-filter-btn ${filter === f ? 'tasks-filter-active' : ''}`}
                 >
                   {f === 'all' ? 'All' : f.replace('_', ' ')}
                 </button>
@@ -260,16 +190,9 @@ export default function TasksPage() {
           </div>
 
           {/* Tasks List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="tasks-list">
             {filteredTasks.length === 0 ? (
-              <div
-                className="card"
-                style={{
-                  textAlign: 'center',
-                  padding: 'var(--space-16)',
-                  color: 'var(--text-muted)',
-                }}
-              >
+              <div className="card tasks-empty-state">
                 <svg
                   width={80}
                   height={80}
@@ -277,28 +200,19 @@ export default function TasksPage() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={1.5}
-                  style={{ margin: '0 auto var(--space-6)', opacity: 0.4 }}
+                  className="tasks-empty-icon"
                 >
                   <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
                   <rect x="9" y="3" width="6" height="4" rx="1" />
                 </svg>
-                <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-2)', color: 'var(--text-secondary)' }}>
-                  No tasks found
-                </h3>
-                <p style={{ margin: 0 }}>
+                <h3 className="tasks-empty-title">No tasks found</h3>
+                <p className="tasks-empty-text">
                   {filter === 'all' ? (
                     <>
                       No tasks yet.{' '}
                       <button
                         onClick={() => router.push('/dashboard')}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--accent-primary)',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          textDecoration: 'underline',
-                        }}
+                        className="tasks-empty-link"
                       >
                         Create your first task
                       </button>
@@ -311,8 +225,7 @@ export default function TasksPage() {
                 {filter !== 'all' && (
                   <button
                     onClick={() => setFilter('all')}
-                    className="btn btn-secondary"
-                    style={{ marginTop: 'var(--space-6)' }}
+                    className="btn btn-secondary tasks-empty-btn"
                   >
                     View All Tasks
                   </button>
@@ -326,13 +239,12 @@ export default function TasksPage() {
                 return (
                   <div
                     key={task.id}
-                    className="card"
+                    className="card tasks-item-card"
                     style={{
-                      padding: 'var(--space-6)',
                       animation: `slideUp 0.3s ease-out ${index * 0.05}s both`,
                     }}
                   >
-                    <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'start' }}>
+                    <div className="tasks-item-content">
                       {/* Status Checkbox */}
                       <button
                         onClick={() =>
@@ -340,6 +252,7 @@ export default function TasksPage() {
                             status: task.status === 'done' ? 'todo' : 'done',
                           })
                         }
+                        className="tasks-checkbox"
                         style={{
                           flexShrink: 0,
                           width: '28px',
@@ -363,21 +276,11 @@ export default function TasksPage() {
                       </button>
 
                       {/* Content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-2)',
-                            marginBottom: 'var(--space-3)',
-                            flexWrap: 'wrap',
-                          }}
-                        >
+                      <div className="tasks-item-text">
+                        <div className="tasks-item-header">
                           <h3
+                            className="tasks-item-title"
                             style={{
-                              fontSize: 'var(--text-lg)',
-                              fontWeight: 600,
-                              margin: 0,
                               textDecoration: task.status === 'done' ? 'line-through' : 'none',
                               color: task.status === 'done' ? 'var(--text-muted)' : 'var(--text-primary)',
                             }}
@@ -385,25 +288,21 @@ export default function TasksPage() {
                             {task.title}
                           </h3>
                           <span
-                            className="badge"
+                            className="badge tasks-item-badge"
                             style={{
                               background: priorityColors.bg,
                               color: priorityColors.text,
                               border: `1px solid ${priorityColors.border}`,
-                              fontSize: 'var(--text-xs)',
-                              padding: 'var(--space-1) var(--space-3)',
                             }}
                           >
                             {task.priority}
                           </span>
                           <span
-                            className="badge"
+                            className="badge tasks-item-badge"
                             style={{
                               background: statusColors.bg,
                               color: statusColors.text,
                               border: `1px solid ${statusColors.border}`,
-                              fontSize: 'var(--text-xs)',
-                              padding: 'var(--space-1) var(--space-3)',
                             }}
                           >
                             {task.status.replace('_', ' ')}
@@ -411,29 +310,11 @@ export default function TasksPage() {
                         </div>
 
                         {task.description && (
-                          <p
-                            style={{
-                              fontSize: 'var(--text-sm)',
-                              color: 'var(--text-secondary)',
-                              marginBottom: 'var(--space-3)',
-                              marginTop: 0,
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {task.description}
-                          </p>
+                          <p className="tasks-item-description">{task.description}</p>
                         )}
 
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-6)',
-                            fontSize: 'var(--text-xs)',
-                            color: 'var(--text-muted)',
-                          }}
-                        >
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                        <div className="tasks-item-meta">
+                          <span className="tasks-meta-item">
                             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                               <line x1="16" y1="2" x2="16" y2="6" />
@@ -443,7 +324,7 @@ export default function TasksPage() {
                             Created {new Date(task.created_at).toLocaleDateString()}
                           </span>
                           {task.due_date && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                            <span className="tasks-meta-item">
                               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
@@ -455,16 +336,11 @@ export default function TasksPage() {
                       </div>
 
                       {/* Actions */}
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                      <div className="tasks-item-actions">
                         <select
                           value={task.status}
                           onChange={(e) => handleUpdateTask(task.id, { status: e.target.value as any })}
-                          className="select"
-                          style={{
-                            padding: 'var(--space-2) var(--space-3)',
-                            fontSize: 'var(--text-sm)',
-                            borderRadius: 'var(--radius-md)',
-                          }}
+                          className="select tasks-status-select"
                         >
                           <option value="todo">To Do</option>
                           <option value="in_progress">In Progress</option>
@@ -472,11 +348,7 @@ export default function TasksPage() {
                         </select>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
-                          className="btn btn-danger btn-sm"
-                          style={{
-                            padding: 'var(--space-2) var(--space-3)',
-                            borderRadius: 'var(--radius-md)',
-                          }}
+                          className="btn btn-danger btn-sm tasks-delete-btn"
                           title="Delete task"
                         >
                           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -494,11 +366,350 @@ export default function TasksPage() {
         </main>
       </div>
 
-      {/* Responsive CSS for mobile */}
+      {/* Inline base styles */}
+      <style jsx>{`
+        .tasks-page-header {
+          background: linear-gradient(135deg, var(--coffee-latte) 0%, var(--accent-primary) 100%);
+          padding: var(--space-8) var(--space-4);
+        }
+
+        .tasks-header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: var(--space-4);
+        }
+
+        .tasks-header-text h1 {
+          color: white;
+          margin-bottom: var(--space-2);
+          font-size: var(--text-3xl);
+        }
+
+        .tasks-subtitle {
+          color: rgba(255, 255, 255, 0.9);
+          margin-bottom: 0;
+          font-size: var(--text-base);
+        }
+
+        .tasks-create-btn {
+          background: white;
+          color: var(--accent-primary);
+          padding: var(--space-4) var(--space-6);
+          font-weight: 600;
+          font-size: var(--text-base);
+          min-height: 46px;
+        }
+
+        .tasks-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--space-6);
+          margin-bottom: var(--space-10);
+        }
+
+        .tasks-stat-card {
+          padding: var(--space-6);
+          text-align: center;
+        }
+
+        .tasks-stat-number {
+          font-size: var(--text-3xl);
+          font-weight: 700;
+        }
+
+        .tasks-stat-total { color: var(--accent-primary); }
+        .tasks-stat-completed { color: var(--success); }
+        .tasks-stat-progress { color: var(--info); }
+        .tasks-stat-pending { color: var(--warning); }
+
+        .tasks-stat-label {
+          font-size: var(--text-sm);
+          color: var(--text-muted);
+          margin-top: var(--space-1);
+        }
+
+        .tasks-filter-section {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: var(--space-8);
+          flex-wrap: wrap;
+          gap: var(--space-4);
+        }
+
+        .tasks-filter-title {
+          font-size: var(--text-2xl);
+          font-weight: 600;
+          color: var(--text-primary);
+          margin: 0;
+        }
+
+        .tasks-filter-buttons {
+          display: flex;
+          gap: var(--space-2);
+          background: var(--bg-card);
+          padding: var(--space-2);
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--border-subtle);
+        }
+
+        .tasks-filter-btn {
+          flex: 1 1 auto;
+          padding: var(--space-3) var(--space-5);
+          border-radius: var(--radius-lg);
+          background: transparent;
+          color: var(--text-secondary);
+          font-weight: 500;
+          font-size: var(--text-sm);
+          transition: all var(--transition-fast);
+          min-height: 42px;
+          border: none;
+          cursor: pointer;
+        }
+
+        .tasks-filter-active {
+          background: var(--accent-light);
+          color: var(--accent-primary);
+          font-weight: 600;
+        }
+
+        .tasks-list {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-4);
+        }
+
+        .tasks-item-card {
+          padding: var(--space-6);
+        }
+
+        .tasks-item-content {
+          display: flex;
+          gap: var(--space-4);
+          align-items: start;
+        }
+
+        .tasks-item-text {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .tasks-item-header {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          margin-bottom: var(--space-3);
+          flex-wrap: wrap;
+        }
+
+        .tasks-item-title {
+          font-size: var(--text-lg);
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .tasks-item-badge {
+          font-size: var(--text-xs);
+          padding: var(--space-1) var(--space-3);
+        }
+
+        .tasks-item-description {
+          font-size: var(--text-sm);
+          color: var(--text-secondary);
+          margin-bottom: var(--space-3);
+          margin-top: 0;
+          line-height: 1.6;
+        }
+
+        .tasks-item-meta {
+          display: flex;
+          align-items: center;
+          gap: var(--space-6);
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+        }
+
+        .tasks-meta-item {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+        }
+
+        .tasks-item-actions {
+          display: flex;
+          gap: var(--space-2);
+          align-items: center;
+        }
+
+        .tasks-status-select {
+          padding: var(--space-2) var(--space-3);
+          font-size: var(--text-sm);
+          border-radius: var(--radius-md);
+        }
+
+        .tasks-delete-btn {
+          padding: var(--space-2) var(--space-3);
+          border-radius: var(--radius-md);
+        }
+
+        .tasks-empty-state {
+          text-align: center;
+          padding: var(--space-16);
+          color: var(--text-muted);
+        }
+
+        .tasks-empty-icon {
+          margin: 0 auto var(--space-6);
+          opacity: 0.4;
+        }
+
+        .tasks-empty-title {
+          font-size: var(--text-lg);
+          margin-bottom: var(--space-2);
+          color: var(--text-secondary);
+        }
+
+        .tasks-empty-text {
+          margin: 0;
+        }
+
+        .tasks-empty-link {
+          background: none;
+          border: none;
+          color: var(--accent-primary);
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: underline;
+        }
+
+        .tasks-empty-btn {
+          margin-top: var(--space-6);
+        }
+      `}</style>
+
+      {/* Mobile Responsive CSS */}
       <style jsx>{`
         @media (max-width: 767px) {
           .tasks-content {
             marginLeft: 0 !important;
+          }
+        }
+
+        @media (max-width: 639px) {
+          .tasks-content {
+            marginLeft: 0 !important;
+          }
+
+          .tasks-title {
+            font-size: var(--text-2xl) !important;
+          }
+
+          .tasks-create-btn {
+            padding: var(--space-3) var(--space-5) !important;
+            font-size: var(--text-sm) !important;
+          }
+
+          .tasks-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: var(--space-4) !important;
+          }
+
+          .tasks-stat-card {
+            padding: var(--space-4) !important;
+          }
+
+          .tasks-filter-section {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: var(--space-4) !important;
+          }
+
+          .tasks-filter-buttons {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+
+          .tasks-filter-btn {
+            flex: 0 0 auto !important;
+            padding: var(--space-3) var(--space-4) !important;
+            font-size: var(--text-xs) !important;
+            white-space: nowrap !important;
+          }
+
+          .tasks-item-card {
+            padding: var(--space-4) !important;
+          }
+
+          .tasks-item-content {
+            flex-direction: column !important;
+            gap: var(--space-3) !important;
+          }
+
+          .tasks-checkbox {
+            width: 32px !important;
+            height: 32px !important;
+            align-self: flex-start !important;
+          }
+
+          .tasks-item-actions {
+            width: 100% !important;
+            justify-content: space-between !important;
+            margin-top: var(--space-2) !important;
+          }
+
+          .tasks-status-select {
+            flex: 1 !important;
+            padding: var(--space-3) !important;
+          }
+
+          .tasks-delete-btn {
+            min-width: 44px !important;
+            min-height: 44px !important;
+            padding: var(--space-3) !important;
+          }
+
+          .tasks-item-header {
+            flex-wrap: wrap !important;
+          }
+
+          .tasks-item-title {
+            font-size: var(--text-base) !important;
+            width: 100% !important;
+          }
+
+          .tasks-item-badge {
+            font-size: 10px !important;
+            padding: 2px 6px !important;
+          }
+
+          .tasks-item-meta {
+            flex-wrap: wrap !important;
+            gap: var(--space-3) !important;
+            font-size: 11px !important;
+          }
+
+          .tasks-empty-state {
+            padding: var(--space-8) !important;
+          }
+
+          .tasks-empty-icon {
+            width: 60px !important;
+            height: 60px !important;
+          }
+        }
+
+        @media (min-width: 640px) and (max-width: 767px) {
+          .tasks-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .tasks-stats-grid {
+            gap: var(--space-4) !important;
           }
         }
       `}</style>

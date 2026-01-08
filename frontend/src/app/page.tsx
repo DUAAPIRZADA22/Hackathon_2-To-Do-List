@@ -617,17 +617,17 @@ export default function HomePage() {
 
         {/* Responsive CSS */}
         <style jsx>{`
-          /* Mobile styles (< 768px) */
-          @media (max-width: 767px) {
+          /* Mobile styles (< 640px) */
+          @media (max-width: 639px) {
             .hero-section {
               min-height: auto !important;
-              padding: var(--space-12) var(--space-4) !important;
+              padding: var(--space-10) var(--space-4) !important;
             }
 
             .container {
               display: block !important;
               gridTemplateColumns: 1fr !important;
-              gap: var(--space-8) !important;
+              gap: var(--space-6) !important;
               text-align: center;
             }
 
@@ -635,20 +635,31 @@ export default function HomePage() {
               maxWidth: 100% !important;
             }
 
+            .badge-text {
+              fontSize: var(--text-xs) !important;
+            }
+
             .hero-title {
-              font-size: 2rem !important;
-              line-height: 1.2 !important;
+              font-size: 1.75rem !important;
+              line-height: 1.15 !important;
             }
 
             .hero-description {
-              font-size: 1rem !important;
+              fontSize: 0.95rem !important;
+            }
+
+            .cta-buttons {
+              flex-direction: column !important;
+              width: 100% !important;
             }
 
             .hero-btn-primary,
             .hero-btn-secondary {
-              padding: var(--space-4) var(--space-8) !important;
+              width: 100% !important;
+              padding: var(--space-4) var(--space-6) !important;
               font-size: var(--text-sm) !important;
               min-width: unset !important;
+              justifyContent: center !important;
             }
 
             .desktop-icon {
@@ -661,15 +672,19 @@ export default function HomePage() {
             }
 
             .stat-number {
-              font-size: var(--text-xl) !important;
+              fontSize: var(--text-xl) !important;
             }
 
             .stat-label {
-              font-size: var(--text-xs) !important;
+              fontSize: var(--text-xs) !important;
             }
 
             .hero-illustration {
               display: none !important;
+            }
+
+            .features-section {
+              padding: var(--space-10) var(--space-4) !important;
             }
 
             .features-grid {
@@ -681,25 +696,62 @@ export default function HomePage() {
               padding: var(--space-5) !important;
             }
 
+            .footer {
+              padding: var(--space-8) var(--space-4) !important;
+            }
+
             .footer-grid {
               gridTemplateColumns: 1fr !important;
-              gap: var(--space-8) !important;
+              gap: var(--space-6) !important;
             }
 
             .footer-bottom {
               flex-direction: column !important;
               textAlign: center;
+              gap: var(--space-3) !important;
+            }
+          }
+
+          /* Small tablet (640px - 767px) */
+          @media (min-width: 640px) and (max-width: 767px) {
+            .hero-section {
+              padding: var(--space-12) var(--space-5) !important;
+            }
+
+            .hero-title {
+              font-size: 2rem !important;
+            }
+
+            .stats-grid {
+              gridTemplateColumns: 1fr !important;
+              gap: var(--space-4) !important;
+            }
+
+            .features-grid {
+              gridTemplateColumns: 1fr !important;
             }
           }
 
           /* Tablet styles (768px - 1023px) */
           @media (min-width: 768px) and (max-width: 1023px) {
+            .hero-section {
+              padding: var(--space-14) var(--space-6) !important;
+            }
+
             .hero-title {
               font-size: clamp(2rem, 5vw, 3rem) !important;
             }
 
+            .hero-content {
+              maxWidth: 100% !important;
+            }
+
             .features-grid {
               gridTemplateColumns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+            }
+
+            .container {
+              gap: var(--space-12) !important;
             }
           }
 

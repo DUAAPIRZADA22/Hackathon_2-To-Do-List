@@ -398,6 +398,65 @@ export default function DashboardPage() {
             marginLeft: 0 !important;
           }
         }
+
+        @media (max-width: 639px) {
+          .dashboard-content {
+            marginLeft: 0 !important;
+          }
+
+          main {
+            padding: var(--space-6) var(--space-4) !important;
+          }
+
+          main > .container {
+            gridTemplateColumns: 1fr !important;
+            gap: var(--space-6) !important;
+          }
+
+          .card {
+            padding: var(--space-5) !important;
+          }
+
+          aside {
+            position: static !important;
+          }
+
+          h1 {
+            fontSize: var(--text-2xl) !important;
+          }
+
+          h2 {
+            fontSize: var(--text-xl) !important;
+          }
+
+          input,
+          select,
+          textarea {
+            fontSize: 16px !important;
+          }
+
+          button[type='submit'] {
+            fontSize: var(--text-base) !important;
+            minHeight: 48px !important;
+          }
+        }
+
+        @media (min-width: 640px) and (max-width: 767px) {
+          main > .container {
+            gridTemplateColumns: 1fr !important;
+          }
+
+          aside {
+            position: static !important;
+          }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+          main > .container {
+            gridTemplateColumns: minmax(0, 1.2fr) minmax(280px, 350px) !important;
+            gap: var(--space-6) !important;
+          }
+        }
       `}</style>
     </>
   );
