@@ -36,4 +36,5 @@ nul
 __pycache__/
 *.py[cod]
 *$py.class
-.tsbuildinfo
+*.tsbuildinfo
+**/*.tsbuildinfo

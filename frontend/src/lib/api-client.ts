@@ -44,6 +44,7 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Note: withCredentials removed to avoid CORS issues with error responses
 });
 
 /**
@@ -68,12 +69,9 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ErrorResponse>) => {
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - remove token
     if (error.response?.status === 401) {
       removeToken();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/signin';
-      }
     }
 
     // Convert to ApiError for consistent error handling

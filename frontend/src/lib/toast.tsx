@@ -1,5 +1,5 @@
 /**
- * Toast Notification System
+ * Toast Notification System - Coffee Theme
  * Simple, elegant toast notifications for user feedback
  */
 
@@ -39,7 +39,7 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 3000) => {
+  const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 4000) => {
     const id = Math.random().toString(36).substring(2, 9);
     const toast: Toast = { id, type, message, duration };
 
@@ -73,7 +73,18 @@ function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div
+      style={{
+        position: 'fixed',
+        top: 'var(--space-6)',
+        right: 'var(--space-6)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-3)',
+        pointerEvents: 'none',
+      }}
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
@@ -90,39 +101,56 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   const getToastStyles = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-emerald-100 border-emerald-300 text-emerald-800 dark:bg-emerald-900/80 dark:border-emerald-700 dark:text-emerald-200';
+        return {
+          background: 'var(--success-light)',
+          border: '1px solid var(--success)',
+          color: 'var(--success)',
+        };
       case 'error':
-        return 'bg-red-100 border-red-300 text-red-800 dark:bg-red-900/80 dark:border-red-700 dark:text-red-200';
+        return {
+          background: 'var(--danger-light)',
+          border: '1px solid var(--danger)',
+          color: 'var(--danger)',
+        };
       case 'warning':
-        return 'bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-900/80 dark:border-amber-700 dark:text-amber-200';
+        return {
+          background: 'var(--warning-light)',
+          border: '1px solid var(--warning)',
+          color: 'var(--warning)',
+        };
       default:
-        return 'bg-sky-100 border-sky-300 text-sky-800 dark:bg-sky-900/80 dark:border-sky-700 dark:text-sky-200';
+        return {
+          background: 'var(--info-light)',
+          border: '1px solid var(--info)',
+          color: 'var(--info)',
+        };
     }
   };
 
   const getIcon = () => {
+    const size = 20;
     switch (toast.type) {
       case 'success':
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width={size} height={size} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         );
       case 'error':
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width={size} height={size} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         );
       case 'warning':
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width={size} height={size} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         );
       default:
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width={size} height={size} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
@@ -131,15 +159,40 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
 
   return (
     <div
-      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border-2 shadow-xl transform transition-all duration-300 animate-slide-in ${getToastStyles()}`}
+      style={{
+        pointerEvents: 'auto',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-4)',
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: 'var(--shadow-xl)',
+        minWidth: '300px',
+        maxWidth: '400px',
+        animation: 'slideUp 0.3s ease-out',
+        ...getToastStyles(),
+      }}
     >
-      <div className="flex-shrink-0">{getIcon()}</div>
-      <p className="flex-1 text-sm font-medium">{toast.message}</p>
+      <div style={{ flexShrink: 0, display: 'flex' }}>{getIcon()}</div>
+      <p style={{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 500, margin: 0 }}>
+        {toast.message}
+      </p>
       <button
         onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+        style={{
+          flexShrink: 0,
+          padding: 'var(--space-1)',
+          borderRadius: 'var(--radius-md)',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          opacity: 0.6,
+          transition: 'opacity var(--transition-fast)',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
