@@ -11,7 +11,7 @@ import { isAuthenticated, getCurrentUser, signOut } from '@/lib/auth';
 import { getTasks, updateTask, deleteTask } from '@/services/task';
 import { useToast } from '@/lib/toast';
 import { Navigation, Sidebar } from '@/components';
-import type { Task } from '@/types/api';
+import type { Task, TaskUpdateRequest } from '@/types/api';
 
 export default function TasksPage() {
   const router = useRouter();
@@ -44,7 +44,15 @@ export default function TasksPage() {
 
   const handleUpdateTask = async (taskId: number, updates: Partial<Task>) => {
     try {
-      await updateTask(taskId, updates);
+      // Convert Partial<Task> to TaskUpdateRequest by removing null values
+      const updateRequest: TaskUpdateRequest = {};
+      if (updates.title !== undefined) updateRequest.title = updates.title;
+      if (updates.description !== undefined) updateRequest.description = updates.description || undefined;
+      if (updates.status !== undefined) updateRequest.status = updates.status;
+      if (updates.priority !== undefined) updateRequest.priority = updates.priority;
+      if (updates.due_date !== undefined) updateRequest.due_date = updates.due_date;
+
+      await updateTask(taskId, updateRequest);
       showToast('Task updated!', 'success');
       loadTasks();
     } catch (error: any) {
