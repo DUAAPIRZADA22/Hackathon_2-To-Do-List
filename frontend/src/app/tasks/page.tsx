@@ -50,7 +50,7 @@ export default function TasksPage() {
       if (updates.description !== undefined) updateRequest.description = updates.description || undefined;
       if (updates.status !== undefined) updateRequest.status = updates.status;
       if (updates.priority !== undefined) updateRequest.priority = updates.priority;
-      if (updates.due_date !== undefined) updateRequest.due_date = updates.due_date;
+      if (updates.due_date !== undefined) updateRequest.due_date = updates.due_date || undefined;
 
       await updateTask(taskId, updateRequest);
       showToast('Task updated!', 'success');
