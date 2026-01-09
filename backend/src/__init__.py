@@ -1,0 +1,1 @@
+"""ActionMind AI Backend Application"""
