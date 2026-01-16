@@ -147,7 +147,7 @@ export default function SignUpPage() {
                 className="input"
                 placeholder="johndoe"
                 disabled={isLoading}
-                style={{ fontSize: 'var(--text-base)' }}
+                style={{ fontSize: '16px' }}
               />
             </div>
 
@@ -174,7 +174,7 @@ export default function SignUpPage() {
                 className="input"
                 placeholder="you@example.com"
                 disabled={isLoading}
-                style={{ fontSize: 'var(--text-base)' }}
+                style={{ fontSize: '16px' }}
               />
             </div>
 
@@ -202,7 +202,7 @@ export default function SignUpPage() {
                 className="input"
                 placeholder="••••••••"
                 disabled={isLoading}
-                style={{ fontSize: 'var(--text-base)' }}
+                style={{ fontSize: '16px' }}
               />
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-1)', marginBottom: 0 }}>
                 Must be at least 6 characters

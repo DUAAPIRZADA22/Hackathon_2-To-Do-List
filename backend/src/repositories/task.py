@@ -36,7 +36,20 @@ class TaskRepository:
     @staticmethod
     def create(db: Session, task_data: TaskCreate, user_id: int) -> Task:
         """Create a new task"""
-        db_task = Task(**task_data.model_dump(), user_id=user_id)
+        # Extract data from schema (now includes completed)
+        task_dict = task_data.model_dump()
+
+        # Create task object with all fields including completed
+        db_task = Task(
+            title=task_dict.get('title'),
+            description=task_dict.get('description'),
+            completed=task_dict.get('completed', False),  # Get from schema
+            status=task_dict.get('status'),
+            priority=task_dict.get('priority'),
+            due_date=task_dict.get('due_date'),
+            user_id=user_id
+        )
+
         db.add(db_task)
         db.commit()
         db.refresh(db_task)

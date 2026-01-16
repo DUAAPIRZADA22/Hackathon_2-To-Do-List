@@ -272,10 +272,10 @@ export default function ChatPage() {
                       padding: 'var(--space-4) var(--space-5)',
                       borderRadius: 'var(--radius-lg)',
                       background: message.role === 'user'
-                        ? '#2c1810'
+                        ? (theme === 'light' ? '#5c3d2e' : '#2c1810')
                         : 'var(--bg-secondary)',
                       color: message.role === 'user' ? '#ffffff' : 'var(--text-primary)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      boxShadow: theme === 'light' && message.role === 'user' ? '0 2px 12px rgba(92, 61, 46, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
                     }}
                   >
                     {/* Parse and format task lists from content */}

@@ -79,8 +79,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content */}
-        <main style={{ padding: 'var(--space-8) var(--space-4)' }}>
-          <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(320px, 400px)', gap: 'var(--space-8)', alignItems: 'start' }}>
+        <main className="dashboard-main" style={{ padding: 'var(--space-8) var(--space-4)' }}>
+          <div className="container dashboard-grid" style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 350px)', gap: 'var(--space-8)', alignItems: 'start' }}>
             {/* Left: Create Task Form */}
             <div style={{ minWidth: 0 }}>
               {/* Create Task Section */}
@@ -395,55 +395,38 @@ export default function DashboardPage() {
       <style jsx>{`
         @media (max-width: 767px) {
           .dashboard-content {
-            marginLeft: 0 !important;
+            margin-left: 0 !important;
+            width: 100% !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
           }
         }
 
         @media (max-width: 639px) {
           .dashboard-content {
-            marginLeft: 0 !important;
+            margin-left: 0 !important;
+            width: 100% !important;
           }
 
-          main {
-            padding: var(--space-6) var(--space-4) !important;
+          .dashboard-main {
+            padding: var(--space-5) var(--space-3) !important;
           }
 
-          main > .container {
-            gridTemplateColumns: 1fr !important;
-            gap: var(--space-6) !important;
+          .dashboard-grid {
+            grid-template-columns: 1fr !important;
+            gap: var(--space-5) !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
           }
-
-          .card {
-            padding: var(--space-5) !important;
-          }
-
-          aside {
-            position: static !important;
-          }
-
-          h1 {
-            fontSize: var(--text-2xl) !important;
-          }
-
-          h2 {
-            fontSize: var(--text-xl) !important;
-          }
-
-          input,
-          select,
-          textarea {
-            fontSize: 16px !important;
-          }
-
-          button[type='submit'] {
-            fontSize: var(--text-base) !important;
-            minHeight: 48px !important;
-          }
-        }
 
         @media (min-width: 640px) and (max-width: 767px) {
-          main > .container {
+          .dashboard-grid {
             gridTemplateColumns: 1fr !important;
+          }
+
+          .dashboard-main {
+            padding: var(--space-6) var(--space-4) !important;
           }
 
           aside {
@@ -452,9 +435,13 @@ export default function DashboardPage() {
         }
 
         @media (min-width: 768px) and (max-width: 1023px) {
-          main > .container {
+          .dashboard-grid {
             gridTemplateColumns: minmax(0, 1.2fr) minmax(280px, 350px) !important;
             gap: var(--space-6) !important;
+          }
+
+          .dashboard-main {
+            padding: var(--space-6) var(--space-4) !important;
           }
         }
       `}</style>

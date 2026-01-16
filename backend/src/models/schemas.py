@@ -59,13 +59,14 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     """Task creation schema"""
-    pass
+    completed: bool = Field(default=False)
 
 
 class TaskUpdate(BaseModel):
     """Task update schema"""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
+    completed: Optional[bool] = None
     status: Optional[str] = Field(None, pattern="^(todo|in_progress|done)$")
     priority: Optional[str] = Field(None, pattern="^(low|medium|high|urgent)$")
     due_date: Optional[datetime] = None
@@ -77,6 +78,7 @@ class TaskResponse(TaskBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    completed: bool
 
     model_config = ConfigDict(from_attributes=True)
 

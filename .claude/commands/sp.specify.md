@@ -1,6 +1,6 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
-handoffs: 
+handoffs:
   - label: Build Technical Plan
     agent: sp.plan
     prompt: Create a plan for the spec. I am building with...
@@ -104,20 +104,20 @@ Given that feature description, do this:
 
       ```markdown
       # Specification Quality Checklist: [FEATURE NAME]
-      
+
       **Purpose**: Validate specification completeness and quality before proceeding to planning
       **Created**: [DATE]
       **Feature**: [Link to spec.md]
-      
+
       ## Content Quality
-      
+
       - [ ] No implementation details (languages, frameworks, APIs)
       - [ ] Focused on user value and business needs
       - [ ] Written for non-technical stakeholders
       - [ ] All mandatory sections completed
-      
+
       ## Requirement Completeness
-      
+
       - [ ] No [NEEDS CLARIFICATION] markers remain
       - [ ] Requirements are testable and unambiguous
       - [ ] Success criteria are measurable
@@ -126,16 +126,24 @@ Given that feature description, do this:
       - [ ] Edge cases are identified
       - [ ] Scope is clearly bounded
       - [ ] Dependencies and assumptions identified
-      
+
       ## Feature Readiness
-      
+
       - [ ] All functional requirements have clear acceptance criteria
       - [ ] User scenarios cover primary flows
       - [ ] Feature meets measurable outcomes defined in Success Criteria
       - [ ] No implementation details leak into specification
-      
+
+      ## AI/LLM Feature Specific Checks (if applicable)
+
+      - [ ] Response time requirements specified (e.g., "first token within 2 seconds")
+      - [ ] Tool/interaction patterns support user-friendly input (not requiring technical IDs)
+      - [ ] Conversation state management clearly defined
+      - [ ] Error handling for AI failures documented
+      - [ ] Rate limiting and cost considerations addressed
+
       ## Notes
-      
+
       - Items marked incomplete require spec updates before `/sp.clarify` or `/sp.plan`
       ```
 
@@ -160,20 +168,20 @@ Given that feature description, do this:
 
            ```markdown
            ## Question [N]: [Topic]
-           
+
            **Context**: [Quote relevant spec section]
-           
+
            **What we need to know**: [Specific question from NEEDS CLARIFICATION marker]
-           
+
            **Suggested Answers**:
-           
+
            | Option | Answer | Implications |
            |--------|--------|--------------|
            | A      | [First suggested answer] | [What this means for the feature] |
            | B      | [Second suggested answer] | [What this means for the feature] |
            | C      | [Third suggested answer] | [What this means for the feature] |
            | Custom | Provide your own answer | [Explain how to provide custom input] |
-           
+
            **Your choice**: _[Wait for user response]_
            ```
 
@@ -209,6 +217,152 @@ Given that feature description, do this:
 - **Optional sections**: Include only when relevant to the feature
 - When a section doesn't apply, remove it entirely (don't leave as "N/A")
 
+### For AI/LLM Features
+
+When specifying features involving AI agents, chatbots, or LLM-based tools, include these additional considerations:
+
+**Performance & Latency Requirements**
+- Specify acceptable response times for user-facing interactions
+- Distinguish between "first token" time (initial response) and complete response time
+- Consider real-time vs. batch processing needs
+- Example: "Chat responses begin within 2 seconds; complete responses within 10 seconds for typical queries"
+
+**Tool & Interaction Design**
+- Prefer user-friendly identifiers over technical IDs (task names vs. UUIDs)
+- Support partial matching and fuzzy search for natural language interactions
+- Provide clear tool descriptions that guide AI agent selection
+- Design tools for single-responsibility actions
+
+**Example: Good Tool Specification**
+```
+Functional Requirement: Users can mark tasks as complete using natural language
+
+Acceptance Criteria:
+- Users can reference tasks by title (e.g., "Complete the landing page task")
+- System supports partial matching (e.g., "landing page" matches "Landing Page Redesign")
+- System provides confirmation when task is completed
+- If multiple tasks match, system presents options to user
+```
+
+**Example: Poor Tool Specification**
+```
+Functional Requirement: Users can complete tasks by ID
+
+Acceptance Criteria:
+- System accepts task UUID input
+- System updates task status to "complete"
+```
+*(This fails because users don't know UUIDs; it's not user-friendly)*
+
+**Conversation & Context Management**
+- Specify how conversation history should be maintained
+- Define context retention policies (what's remembered, what's forgotten)
+- Clarify handoff behavior between specialized agents (if applicable)
+- Document session lifecycle (creation, expiration, cleanup)
+
+**Error Handling for AI Features**
+- Specify behavior when AI services are unavailable
+- Define fallback mechanisms (retry, alternative models, graceful degradation)
+- Document rate limiting considerations
+- Include cost/budget constraints if applicable
+
+**Example Success Criteria for AI Features**
+- "Chat responses begin within 2 seconds for 95% of queries"
+- "Users can complete task management actions using natural language without technical IDs"
+- "System maintains conversation context for at least 24 hours of inactivity"
+- "AI tool errors provide actionable next steps to users"
+
+### For MCP Server Integration Features
+
+When specifying features that use MCP (Model Context Protocol) servers:
+
+**Integration Architecture**
+- Specify whether MCP server is embedded (single process) or standalone (separate service)
+- **Preferred**: Embedded architecture where MCP server is mounted in main application (single-server deployment)
+- Document discovery and connection requirements
+- Define tool exposure patterns (what tools are available to agents)
+
+**MCP Server Deployment Patterns**
+
+**✅ RECOMMENDED: Single-Server Architecture (Embedded MCP)**
+- MCP server mounted at `/mcp` endpoint in main application
+- Single process, single port deployment
+- Shared lifecycle management
+- Simplified monitoring and scaling
+- Example: "MCP server co-located with main API at /mcp endpoint"
+
+**❌ AVOID: Separate MCP Server Process**
+- Two separate processes require complex orchestration
+- Internal networking between services
+- Separate lifecycle management
+- Harder scaling and monitoring
+- Only use when strict isolation is required
+
+**Tool Design Patterns**
+- Provide both ID-based and name-based variants of tools
+- Include clear descriptions for each tool's purpose and parameters
+- Support batch operations where applicable
+- Design for composability (tools can be combined effectively)
+- Use structured input validation (Pydantic/Zod schemas)
+- Return actionable error messages with specific suggestions
+
+**Tool Naming and Discoverability**
+- Use consistent prefixes (e.g., `github_create_issue`, `github_list_repos`)
+- Action-oriented naming (create_, list_, get_, update_, delete_)
+- Clear, descriptive names that help agents find the right tools
+- Include usage tips in tool descriptions
+
+**Tool Response Design**
+- Prefer structured data (JSON) alongside formatted text
+- Support pagination for large result sets
+- Include source citations and metadata
+- Return focused, relevant data (not entire records)
+
+**Error Handling for MCP Tools**
+- Error messages must guide agents toward solutions
+- Include specific suggestions and next steps
+- Distinguish between retryable and fatal errors
+- Provide context about what went wrong
+
+**Example Specification Pattern**
+```
+Functional Requirement: AI agent can query and manage project tasks via MCP
+
+Acceptance Criteria:
+- MCP server embedded in main application at /mcp endpoint
+- Tools include: list_tasks, get_task_by_id, get_task_by_title, create_task, update_task, delete_task
+- Title-based tools support partial matching and case-insensitive search
+- Tool descriptions clearly indicate when to use ID-based vs. title-based variants
+- Errors provide actionable suggestions (e.g., "Try different keywords or check spelling")
+- Tool responses include both formatted text and structured JSON data
+- List operations support pagination (default: 20 items, max: 100)
+```
+
+**Example: Good vs Poor MCP Tool Specification**
+
+**Good Tool Specification:**
+```
+Functional Requirement: Search knowledge base via MCP
+
+Acceptance Criteria:
+- search_knowledge_base tool accepts query string (2-500 chars) with optional scope filter
+- Tool returns formatted results with source citations and relevance scores
+- Supports pagination (default 5 results, max 20)
+- Empty results return helpful message: "No results found for query. Try different keywords."
+- Errors provide specific guidance: "Qdrant connection failed. Check QDRANT_URL env var."
+- Tool description includes usage tips: "Use specific technical terms for better results"
+```
+
+**Poor Tool Specification:**
+```
+Functional Requirement: Search knowledge base
+
+Acceptance Criteria:
+- Tool accepts query and returns results
+- Uses MCP protocol
+```
+*(Fails because: no error handling, no pagination, unclear tool behavior)*
+
 ### For AI Generation
 
 When creating this spec from a user prompt:
@@ -233,6 +387,8 @@ When creating this spec from a user prompt:
 - Error handling: User-friendly messages with appropriate fallbacks
 - Authentication method: Standard session-based or OAuth2 for web apps
 - Integration patterns: RESTful APIs unless specified otherwise
+- AI response time: < 2 seconds for first token in real-time chat applications
+- Tool naming: User-friendly names (title-based) alongside technical IDs
 
 ### Success Criteria Guidelines
 
@@ -249,6 +405,8 @@ Success criteria must be:
 - "System supports 10,000 concurrent users"
 - "95% of searches return results in under 1 second"
 - "Task completion rate improves by 40%"
+- "Chat responses begin within 2 seconds for 95% of queries" (AI feature)
+- "Users can manage tasks using natural language without technical IDs" (AI/UX feature)
 
 **Bad examples** (implementation-focused):
 
@@ -256,6 +414,7 @@ Success criteria must be:
 - "Database can handle 1000 TPS" (implementation detail, use user-facing metric)
 - "React components render efficiently" (framework-specific)
 - "Redis cache hit rate above 80%" (technology-specific)
+- "OpenAI model returns in 5 seconds" (technology-specific, use "AI responds within 5 seconds")
 
 ---
 

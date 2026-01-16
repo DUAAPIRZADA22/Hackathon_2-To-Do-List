@@ -29,7 +29,22 @@ class TaskService:
             List of tasks
         """
         tasks = TaskRepository.get_all_by_user(db, user_id, skip, limit)
-        return [TaskResponse.model_validate(task) for task in tasks]
+        # Convert to response with explicit field mapping
+        result = []
+        for task in tasks:
+            result.append(TaskResponse(
+                id=task.id,
+                title=task.title,
+                description=task.description,
+                completed=task.completed,  # Explicitly include
+                status=task.status,
+                priority=task.priority,
+                due_date=task.due_date,
+                user_id=task.user_id,
+                created_at=task.created_at,
+                updated_at=task.updated_at
+            ))
+        return result
 
     @staticmethod
     def get_task(db: Session, task_id: int, user_id: int) -> TaskResponse:
@@ -60,7 +75,19 @@ class TaskService:
                 detail="Not authorized to access this task"
             )
 
-        return TaskResponse.model_validate(task)
+        # Explicit field mapping
+        return TaskResponse(
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            completed=task.completed,
+            status=task.status,
+            priority=task.priority,
+            due_date=task.due_date,
+            user_id=task.user_id,
+            created_at=task.created_at,
+            updated_at=task.updated_at
+        )
 
     @staticmethod
     def create_task(db: Session, task_data: TaskCreate, user_id: int) -> TaskResponse:
@@ -76,7 +103,19 @@ class TaskService:
             Created task
         """
         task = TaskRepository.create(db, task_data, user_id)
-        return TaskResponse.model_validate(task)
+        # Explicit field mapping
+        return TaskResponse(
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            completed=task.completed,
+            status=task.status,
+            priority=task.priority,
+            due_date=task.due_date,
+            user_id=task.user_id,
+            created_at=task.created_at,
+            updated_at=task.updated_at
+        )
 
     @staticmethod
     def update_task(
@@ -114,7 +153,19 @@ class TaskService:
             )
 
         updated_task = TaskRepository.update(db, task, task_data)
-        return TaskResponse.model_validate(updated_task)
+        # Explicit field mapping
+        return TaskResponse(
+            id=updated_task.id,
+            title=updated_task.title,
+            description=updated_task.description,
+            completed=updated_task.completed,
+            status=updated_task.status,
+            priority=updated_task.priority,
+            due_date=updated_task.due_date,
+            user_id=updated_task.user_id,
+            created_at=updated_task.created_at,
+            updated_at=updated_task.updated_at
+        )
 
     @staticmethod
     def delete_task(db: Session, task_id: int, user_id: int) -> None:

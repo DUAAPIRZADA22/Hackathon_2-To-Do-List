@@ -143,7 +143,7 @@ export default function SignInPage() {
                 className="input"
                 placeholder="you@example.com"
                 disabled={isLoading}
-                style={{ fontSize: 'var(--text-base)' }}
+                style={{ fontSize: '16px' }}
               />
             </div>
 
@@ -170,7 +170,7 @@ export default function SignInPage() {
                 className="input"
                 placeholder="••••••••"
                 disabled={isLoading}
-                style={{ fontSize: 'var(--text-base)' }}
+                style={{ fontSize: '16px' }}
               />
             </div>
 
