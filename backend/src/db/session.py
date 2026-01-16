@@ -2,7 +2,7 @@
 Database Session Management for Todo AI Chatbot (Phase III)
 
 Implements async engine and session management with connection pooling.
-Uses SQLAlchemy 2.0 async patterns with AsyncPG (PostgreSQL) driver.
+Uses SQLAlchemy 2.0 async patterns with psycopg (PostgreSQL) driver.
 
 Configuration:
 - Engine: Async PostgreSQL with connection pooling
@@ -43,10 +43,10 @@ def get_database_url() -> str:
     Get database URL from environment variable.
 
     Returns:
-        AsyncPG-compatible database URL
+        Async-compatible database URL (psycopg for HF compatibility)
 
     Example:
-        postgresql+asyncpg://user:password@host:port/database
+        postgresql+psycopg://user:password@host:port/database
     """
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
@@ -55,9 +55,12 @@ def get_database_url() -> str:
             "Please set it in your .env file."
         )
 
-    # Convert postgresql:// to postgresql+asyncpg:// if needed
+    # Convert postgresql:// or postgresql+asyncpg:// to postgresql+psycopg://
+    # Use psycopg for async operations (Hugging Face compatible)
     if database_url.startswith("postgresql://"):
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    elif database_url.startswith("postgresql+asyncpg://"):
+        database_url = database_url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
 
     return database_url
 

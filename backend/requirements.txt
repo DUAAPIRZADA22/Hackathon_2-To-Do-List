@@ -6,9 +6,9 @@ fastapi-cors==0.0.6
 
 # Database and ORM
 sqlmodel==0.0.22
-asyncpg==0.29.0
+# asyncpg==0.29.0  # Replaced with psycopg for Hugging Face compatibility
+psycopg[binary]>=3.1.0
 sqlalchemy==2.0.36
-psycopg2-binary
 alembic==1.13.0
 
 # Authentication
