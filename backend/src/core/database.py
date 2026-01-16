@@ -12,17 +12,17 @@ from src.core.config import settings
 logger = logging.getLogger(__name__)
 
 # Convert async URL to sync URL for Phase I/II synchronous engine
-# Phase III uses psycopg, Phase I/II uses sync psycopg
+# Phase III uses psycopg (async), Phase I/II uses psycopg2 (sync)
 database_url_sync = settings.DATABASE_URL
 print(f"[DEBUG] Original DATABASE_URL: {database_url_sync}")
 
 if database_url_sync.startswith("postgresql+asyncpg://"):
-    # Replace asyncpg driver with postgresql+psycopg for sync operations
-    database_url_sync = database_url_sync.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+    # Replace asyncpg driver with postgresql+psycopg2 for sync operations
+    database_url_sync = database_url_sync.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
     print(f"[DEBUG] Converted to sync URL: {database_url_sync}")
 elif database_url_sync.startswith("postgresql://"):
-    # Convert plain postgresql:// to postgresql+psycopg://
-    database_url_sync = database_url_sync.replace("postgresql://", "postgresql+psycopg://", 1)
+    # Convert plain postgresql:// to postgresql+psycopg2://
+    database_url_sync = database_url_sync.replace("postgresql://", "postgresql+psycopg2://", 1)
     print(f"[DEBUG] Converted to sync URL: {database_url_sync}")
 
 # Create database engine with sync-compatible URL
