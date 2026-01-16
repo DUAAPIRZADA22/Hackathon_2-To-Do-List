@@ -120,7 +120,7 @@ export default function ChatPage() {
                   ...prev.slice(0, -1),
                   {
                     ...lastMessage,
-                    content: lastMessage.content + chunk.content,
+                    content: lastMessage.content + (chunk.content || ''),
                   },
                 ];
               } else {
@@ -130,7 +130,7 @@ export default function ChatPage() {
                   {
                     id: 'streaming',
                     role: 'assistant',
-                    content: chunk.content,
+                    content: chunk.content || '',
                     timestamp: new Date(),
                   },
                 ];
