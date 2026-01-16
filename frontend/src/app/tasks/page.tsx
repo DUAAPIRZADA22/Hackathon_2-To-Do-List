@@ -587,19 +587,43 @@ export default function TasksPage() {
         .tasks-empty-btn {
           margin-top: var(--space-6);
         }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
       `}</style>
 
       {/* Mobile Responsive CSS */}
       <style jsx>{`
         @media (max-width: 767px) {
           .tasks-content {
-            marginLeft: 0 !important;
+            margin-left: 0 !important;
+            width: 100% !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
           }
         }
 
         @media (max-width: 639px) {
           .tasks-content {
-            marginLeft: 0 !important;
+            margin-left: 0 !important;
+            width: 100% !important;
+          }
+
+          .tasks-main {
+            padding: var(--space-4) var(--space-3) !important;
+            width: 100% !important;
+          }
+
+          .tasks-stats-grid {
+            width: 100% !important;
           }
 
           .tasks-title {
@@ -702,12 +726,20 @@ export default function TasksPage() {
         }
 
         @media (min-width: 640px) and (max-width: 767px) {
+          .tasks-main {
+            padding: var(--space-6) var(--space-4) !important;
+          }
+
           .tasks-stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
         }
 
         @media (min-width: 768px) and (max-width: 1023px) {
+          .tasks-main {
+            padding: var(--space-6) var(--space-5) !important;
+          }
+
           .tasks-stats-grid {
             gap: var(--space-4) !important;
           }

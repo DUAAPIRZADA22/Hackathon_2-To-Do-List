@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: Todo AI Chatbot API
+  description: Stateless chat API for AI-powered todo management
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      summary: Send message to AI chatbot
+      description: |
+        Processes a user message through the AI agent and returns a streaming response.
+        The agent will interpret natural language and perform task operations as needed.
+      operationId: chat
+      tags:
+        - Chat
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique user identifier
+        - name: x-session-token
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Better Auth session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                conversation_id:
+                  type: string
+                  format: uuid
+                  description: |
+                    Optional conversation ID to continue existing conversation.
+                    If omitted, a new conversation is created.
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                message:
+                  type: string
+                  description: User's message to the AI assistant
+                  example: "Add a task to buy groceries"
+      responses:
+        '200':
+          description: Successful response with streaming events
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: NDJSON stream of ChatKit events
+        '401':
+          description: Unauthorized - invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns service health status
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-01-12T10:00:00Z"
+
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Unauthorized - Invalid session token"
+        code:
+          type: string
+          description: Error code for programmatic handling
+          example: "UNAUTHORIZED"
+
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: header
+      name: x-session-token
+      description: Better Auth session token for authentication
+
+security:
+  - SessionAuth: []

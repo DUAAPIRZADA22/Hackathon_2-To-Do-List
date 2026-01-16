@@ -1,0 +1,292 @@
+# MCP Tools Schema
+
+**Feature**: 002-todo-ai-chatbot
+**Protocol**: Model Context Protocol (MCP)
+**SDK**: mcp>=1.7.1 (Python)
+
+## Overview
+
+All task management operations are exposed as MCP tools that can be called by the OpenAI Agents SDK. Each tool is stateless and performs database operations through the Repository layer.
+
+## Tools
+
+### 1. add_task
+
+**Description**: Add a new task for a user.
+
+**Parameters**:
+```yaml
+name: add_task
+description: Add a new task for the user
+inputSchema:
+  type: object
+  required:
+    - user_id
+    - title
+  properties:
+    user_id:
+      type: string
+      description: The user's unique identifier
+    title:
+      type: string
+      description: Task title (required, max 500 characters)
+      maxLength: 500
+    description:
+      type: string
+      description: Optional detailed description
+      default: null
+```
+
+**Returns**:
+```json
+{
+  "task_id": "123e4567-e89b-12d3-a456-426614174000",
+  "status": "created",
+  "title": "Buy groceries"
+}
+```
+
+**Error Returns**:
+- `400`: Invalid input (title too long, user_id invalid)
+- `500`: Database error
+
+---
+
+### 2. list_tasks
+
+**Description**: List tasks for a user, optionally filtered by status.
+
+**Parameters**:
+```yaml
+name: list_tasks
+description: List tasks for a user
+inputSchema:
+  type: object
+  required:
+    - user_id
+  properties:
+    user_id:
+      type: string
+      description: The user's unique identifier
+    status:
+      type: string
+      description: Filter by status
+      enum: [all, pending, completed]
+      default: all
+```
+
+**Returns**:
+```json
+{
+  "tasks": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "title": "Buy groceries",
+      "description": "Milk, eggs, bread",
+      "completed": false,
+      "created_at": "2025-01-12T10:00:00Z",
+      "updated_at": "2025-01-12T10:00:00Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+**Error Returns**:
+- `400`: Invalid status filter
+- `500`: Database error
+
+---
+
+### 3. complete_task
+
+**Description**: Mark a task as completed.
+
+**Parameters**:
+```yaml
+name: complete_task
+description: Mark a task as completed
+inputSchema:
+  type: object
+  required:
+    - user_id
+    - task_id
+  properties:
+    user_id:
+      type: string
+      description: The user's unique identifier
+    task_id:
+      type: string
+      description: The task identifier to mark as completed
+```
+
+**Returns**:
+```json
+{
+  "task_id": "123e4567-e89b-12d3-a456-426614174000",
+  "status": "completed",
+  "title": "Buy groceries"
+}
+```
+
+**Error Returns**:
+- `404`: Task not found
+- `403`: Task belongs to different user
+- `500`: Database error
+
+---
+
+### 4. delete_task
+
+**Description**: Delete a task permanently.
+
+**Parameters**:
+```yaml
+name: delete_task
+description: Delete a task permanently
+inputSchema:
+  type: object
+  required:
+    - user_id
+    - task_id
+  properties:
+    user_id:
+      type: string
+      description: The user's unique identifier
+    task_id:
+      type: string
+      description: The task identifier to delete
+```
+
+**Returns**:
+```json
+{
+  "task_id": "123e4567-e89b-12d3-a456-426614174000",
+  "status": "deleted",
+  "title": "Buy groceries"
+}
+```
+
+**Error Returns**:
+- `404`: Task not found
+- `403`: Task belongs to different user
+- `500`: Database error
+
+---
+
+### 5. update_task
+
+**Description**: Update a task's title and/or description.
+
+**Parameters**:
+```yaml
+name: update_task
+description: Update a task's title and/or description
+inputSchema:
+  type: object
+  required:
+    - user_id
+    - task_id
+  properties:
+    user_id:
+      type: string
+      description: The user's unique identifier
+    task_id:
+      type: string
+      description: The task identifier to update
+    title:
+      type: string
+      description: New task title
+      maxLength: 500
+    description:
+      type: string
+      description: New task description
+```
+
+**Returns**:
+```json
+{
+  "task_id": "123e4567-e89b-12d3-a456-426614174000",
+  "status": "updated",
+  "title": "Buy organic groceries"
+}
+```
+
+**Error Returns**:
+- `400`: Invalid input (both title and description omitted)
+- `404`: Task not found
+- `403`: Task belongs to different user
+- `500`: Database error
+
+---
+
+## Common Error Format
+
+All tools return errors in the following format:
+
+```json
+{
+  "error": {
+    "code": "TASK_NOT_FOUND",
+    "message": "Task with ID 'xxx' not found",
+    "details": {}
+  }
+}
+```
+
+**Error Codes**:
+- `TASK_NOT_FOUND`: Task does not exist or user doesn't have access
+- `INVALID_INPUT`: Request validation failed
+- `DATABASE_ERROR`: Internal database error
+- `UNAUTHORIZED`: User authentication failed
+
+---
+
+## Intent Mapping
+
+The AI Agent maps natural language expressions to tools:
+
+| Natural Language | Tool |
+|------------------|------|
+| add, create, remember, don't forget | add_task |
+| show, list, see, what's pending | list_tasks |
+| done, complete, finished | complete_task |
+| delete, remove, cancel, get rid of | delete_task |
+| change, update, modify, rename, edit | update_task |
+
+---
+
+## Implementation Notes
+
+### Tool Registration Pattern
+
+```python
+from agents import function_tool
+
+@function_tool
+async def add_task(
+    user_id: str,
+    title: str,
+    description: str | None = None
+) -> dict:
+    """
+    Add a new task for the user.
+
+    Args:
+        user_id: The user's unique identifier
+        title: Task title (required)
+        description: Optional task description
+
+    Returns:
+        dict with task_id, status, and title
+    """
+    # Implementation
+    pass
+```
+
+### User Authorization
+
+All tools enforce `user_id` ownership:
+- Tasks can only be accessed by their owner
+- Cross-user operations return 403 Forbidden
+- User ID is validated from session context
