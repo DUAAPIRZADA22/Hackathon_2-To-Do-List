@@ -272,10 +272,11 @@ export default function ChatPage() {
                       padding: 'var(--space-4) var(--space-5)',
                       borderRadius: 'var(--radius-lg)',
                       background: message.role === 'user'
-                        ? (theme === 'light' ? '#5c3d2e' : '#2c1810')
+                        ? (theme === 'light' ? '#e8d4c4' : '#2c1810')
                         : 'var(--bg-secondary)',
-                      color: message.role === 'user' ? '#ffffff' : 'var(--text-primary)',
-                      boxShadow: theme === 'light' && message.role === 'user' ? '0 2px 12px rgba(92, 61, 46, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
+                      color: message.role === 'user' ? (theme === 'light' ? '#2c1810' : '#ffffff') : 'var(--text-primary)',
+                      boxShadow: theme === 'light' && message.role === 'user' ? '0 2px 12px rgba(92, 61, 46, 0.2)' : '0 2px 8px rgba(0,0,0,0.15)',
+                      border: message.role === 'user' && theme === 'light' ? '2px solid #8b5e3c' : 'none',
                     }}
                   >
                     {/* Parse and format task lists from content */}
