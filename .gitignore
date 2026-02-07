@@ -73,3 +73,6 @@ env/
 
 # Docker
 *.log
+
+# Claude Code temporary files
+tmpclaude-*-cwd
