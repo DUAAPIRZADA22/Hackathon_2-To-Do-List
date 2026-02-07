@@ -688,3 +688,41 @@ html, body {
   h2 { font-size: var(--text-lg) !important; }
   h3 { font-size: var(--text-base) !important; }
 }
+
+/* === ChatKit UI Customizations === */
+/* Hide thread history sidebar */
+[class*="chatkit"] [class*="thread-list"],
+[class*="chatkit"] [class*="sidebar"],
+[class*="chatkit"] [class*="history"],
+[class*="chatkit"] aside,
+[class*="chatkit"] nav,
+[class*="chatkit"] [role="navigation"] {
+  display: none !important;
+}
+
+/* Hide timestamps and time icons */
+[class*="chatkit"] [class*="timestamp"],
+[class*="chatkit"] [class*="time"],
+[class*="chatkit"] time,
+[class*="chatkit"] [data-testid*="time"],
+[class*="chatkit"] [aria-label*="time"] {
+  display: none !important;
+}
+
+/* Hide message metadata */
+[class*="chatkit"] [class*="metadata"],
+[class*="chatkit"] [class*="message-meta"],
+[class*="chatkit"] [class*="message-footer"] {
+  display: none !important;
+}
+
+/* Hide thread switching controls */
+[class*="chatkit"] [class*="thread-switcher"],
+[class*="chatkit"] [class*="thread-selector"] {
+  display: none !important;
+}
+
+/* Make chat container full width */
+[class*="chatkit"] {
+  width: 100% !important;
+}

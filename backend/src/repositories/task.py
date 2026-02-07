@@ -39,6 +39,9 @@ class TaskRepository:
         # Extract data from schema (now includes completed)
         task_dict = task_data.model_dump()
 
+        print(f"[DEBUG TASK_REPO] Creating task with data: {task_dict}")
+        print(f"[DEBUG TASK_REPO] Session before add - in_transaction: {db.in_transaction()}, dirty: {db.dirty}, new: {db.new}")
+
         # Create task object with all fields including completed
         db_task = Task(
             title=task_dict.get('title'),
@@ -51,8 +54,13 @@ class TaskRepository:
         )
 
         db.add(db_task)
+        print(f"[DEBUG TASK_REPO] Task added to session - pending: {db.new}, dirty: {db.dirty}")
+
         db.commit()
+        print(f"[DEBUG TASK_REPO] Commit completed - task.id: {db_task.id}")
+
         db.refresh(db_task)
+        print(f"[DEBUG TASK_REPO] Refresh completed - verified task in DB")
         return db_task
 
     @staticmethod

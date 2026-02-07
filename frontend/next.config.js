@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   // Enable SWC minification (default in Next.js 15, explicit for clarity)
   swcMinify: true,
+  // Enable standalone output for Docker containerization
+  output: 'standalone',
   // Reduce memory usage during development
   experimental: {
     // Optimize package imports

@@ -38,6 +38,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     to_encode.update({"exp": expire})
 
+    # Ensure sub is a string (JWT library requirement)
+    if "sub" in to_encode and not isinstance(to_encode["sub"], str):
+        to_encode["sub"] = str(to_encode["sub"])
+
     # Encode token
     encoded_jwt = jwt.encode(
         to_encode,
@@ -97,9 +101,14 @@ def get_current_user(
     if payload is None:
         raise credentials_exception
 
-    # Get user_id from token
-    user_id: int = payload.get("sub")
-    if user_id is None:
+    # Get user_id from token (now stored as string, convert to int)
+    user_id_str = payload.get("sub")
+    if user_id_str is None:
+        raise credentials_exception
+
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
         raise credentials_exception
 
     # Get user from database

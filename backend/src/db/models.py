@@ -178,17 +178,18 @@ class Message(SQLModel, table=True):
     A single communication within a conversation from either the user or assistant.
 
     Attributes:
-        id: Primary key (auto-incrementing integer)
+        id: Primary key (UUID for ChatKit compatibility)
         conversation_id: Parent conversation ID (UUID foreign key)
         user_id: Owner's user ID (foreign key to users)
         role: Message role ("user" or "assistant")
         content: Message content
+        tool_calls: Optional JSON string for tool call metadata
         created_at: Message creation timestamp
     """
     __tablename__ = "messages"
 
-    # Primary key (SERIAL in database - auto-incrementing integer)
-    id: int = Field(default=None, primary_key=True)
+    # Primary key (UUID for ChatKit SDK compatibility)
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
 
     # Foreign keys
     # conversation_id is UUID type in database - use string type and let SQLAlchemy handle the UUID
@@ -199,6 +200,7 @@ class Message(SQLModel, table=True):
     # Message content
     role: str = Field(max_length=20)  # "user" or "assistant"
     content: str = Field(sa_column=Column(SAText))
+    tool_calls: Optional[str] = Field(default=None, sa_column=Column(SAText))
 
     # Timestamp
     created_at: datetime = Field(
@@ -287,9 +289,10 @@ class MessageCreate(SQLModel):
 
 class MessageRead(SQLModel):
     """Response model for message data."""
-    id: int  # SERIAL is integer
+    id: str  # UUID for ChatKit compatibility
     conversation_id: str  # UUID stored as string
     user_id: str
     role: str
     content: str
+    tool_calls: Optional[str] = None
     created_at: datetime

@@ -1,0 +1,89 @@
+# ActionMindAI Minikube Values - Low Resource Configuration
+# For use with Docker Desktop < 2GB memory allocation
+
+namespace: actionmindai
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+frontend:
+  name: actionmindai-frontend
+  replicaCount: 1  # Reduced from 2 for limited memory
+  image:
+    repository: ActionMindAI/frontend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    limits:
+      cpu: 200m      # Reduced from 500m
+      memory: 256Mi  # Reduced from 512Mi
+    requests:
+      cpu: 50m       # Reduced from 100m
+      memory: 64Mi   # Reduced from 128Mi
+  # Autoscaling configuration
+  autoscaling:
+    enabled: false
+  # PodDisruptionBudget disabled for single replica
+  podDisruptionBudget:
+    enabled: false
+  # Security context (non-root user)
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+    readOnlyRootFilesystem: false  # Disabled for compatibility
+    allowPrivilegeEscalation: false
+  env:
+    NEXT_PUBLIC_API_URL: "http://actionmindai-backend:8000"
+
+backend:
+  name: actionmindai-backend
+  replicaCount: 1  # Reduced from 2 for limited memory
+  image:
+    repository: ActionMindAI/backend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 400m      # Reduced from 1000m
+      memory: 512Mi  # Reduced from 1Gi
+    requests:
+      cpu: 100m      # Reduced from 200m
+      memory: 128Mi  # Reduced from 256Mi
+  # Autoscaling configuration
+  autoscaling:
+    enabled: false
+  # PodDisruptionBudget disabled for single replica
+  podDisruptionBudget:
+    enabled: false
+  # Security context (non-root user)
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    readOnlyRootFilesystem: false  # Disabled for compatibility
+    allowPrivilegeEscalation: false
+
+secrets:
+  databaseUrl: ""
+  openaiApiKey: ""
+  betterAuthSecret: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  host: actionmindai.local
+  # TLS configuration (for production)
+  tls: []
+  # - hosts:
+  #     - ActionMindAI.example.com
+  #   secretName: ActionMindAI-tls

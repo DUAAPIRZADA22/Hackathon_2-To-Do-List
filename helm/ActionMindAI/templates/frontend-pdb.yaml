@@ -1,0 +1,15 @@
+{{- if .Values.frontend.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.frontend.name }}-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "ActionMindAI.frontendLabels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.frontend.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ActionMindAI.name" . }}
+      app.kubernetes.io/component: frontend
+{{- end }}

@@ -331,6 +331,12 @@ class AgentRunner:
 
         message_lower = message.lower().strip()
 
+        # Debug logging
+        print(f"[DEBUG AGENT] message_lower='{message_lower}', state.step={state.step if state else 'None'}, state.title={state.title if state else 'None'}")
+        if state:
+            print(f"[DEBUG AGENT] Checking if '{message_lower}' in status_map keys: {[s.lower() for s in status_map.keys()]}")
+            print(f"[DEBUG AGENT] Condition result: {message_lower in [s.lower() for s in status_map.keys()]}")
+
         # CASE 1: Active state in "status" step - complete task creation
         if state and state.step == "status" and message_lower in [s.lower() for s in status_map.keys()]:
             print(f"[STATE MANAGER] Completing task creation for user {self.user_id}")
@@ -341,6 +347,9 @@ class AgentRunner:
 
             # Create the task using MCP tool
             try:
+                print(f"[DEBUG AGENT] About to call add_task tool for user {self.user_id}")
+                print(f"[DEBUG AGENT] Task data: title={state.title}, priority={state.priority}, status={state.status}")
+
                 result = await self.mcp_client.execute_function_call({
                     "id": "call_" + str(hash(message)),
                     "name": "add_task",
@@ -350,6 +359,8 @@ class AgentRunner:
                         "status": state.status
                     }
                 })
+
+                print(f"[DEBUG AGENT] Tool result: success={result.success}, data={result.data}, error={result.error}")
 
                 # Clear the state
                 await state_manager.clear_task_creation(self.user_id)

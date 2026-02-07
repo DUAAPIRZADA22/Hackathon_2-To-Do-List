@@ -1,0 +1,125 @@
+namespace: actionmindai
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+frontend:
+  name: actionmindai-frontend
+  replicaCount: 2
+  image:
+    repository: duaa12309/actionmindai-frontend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  # Autoscaling configuration
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # PodDisruptionBudget for high availability
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Pod Security context (non-root user)
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+  # Container Security context
+  containerSecurityContext:
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: false
+  env:
+    NEXT_PUBLIC_API_URL: "http://actionmindai-backend:8000"
+
+backend:
+  name: actionmindai-backend
+  replicaCount: 2
+  image:
+    repository: duaa12309/actionmindai-backend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  # Autoscaling configuration
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  # PodDisruptionBudget for high availability
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Pod Security context (non-root user)
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  # Container Security context
+  containerSecurityContext:
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: false
+
+secrets:
+  databaseUrl: ""
+  openaiApiKey: ""
+  betterAuthSecret: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  host: actionmindai.local
+  # TLS configuration (for production)
+  tls: []
+  # - hosts:
+  #     - ActionMindAI.example.com
+  #   secretName: ActionMindAI-tls
+
+# Database migration configuration
+migration:
+  enabled: true
+  # Retry configuration for failed migrations
+  backoffLimit: 4
+  # Maximum time allowed for migration job (seconds)
+  activeDeadlineSeconds: 600
+  # Init container to wait for database
+  initContainer:
+    image: postgres:16-alpine
+  # Database connection for init container
+  database:
+    # Extract host and port from DATABASE_URL
+    # Default to PostgreSQL service in the same namespace
+    host: postgres
+    port: 5432
+  # Resource limits for migration job
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

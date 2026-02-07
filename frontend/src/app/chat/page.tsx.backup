@@ -1,0 +1,355 @@
+'use client';
+
+/**
+ * ChatKit Chat Page - AI-powered task management
+ *
+ * CRITICAL FIX: Prevent ChatKit component from ever unmounting.
+ * Root cause of disappearing messages:
+ * - Component was rendering with null userId before useEffect initialized it
+ * - Component remounts when userId changes from null to actual value
+ * - apiConfig was recreated when domainKey changed
+ * - useChatKit hook re-initialized when config changed
+ *
+ * Solution:
+ * - Create ChatKitContent ONCE and never destroy it
+ * - Use refs for all dynamic values (userId, token, domainKey)
+ * - Block rendering until userId is initialized via isInitialized state
+ * - apiConfig has ZERO dependencies (completely stable)
+ * - eventHandlers has ZERO dependencies (completely stable)
+ * - Token updates happen via ref, not re-creation
+ */
+
+import { ChatKit, useChatKit } from '@openai/chatkit-react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { isAuthenticated, getCurrentUser, getToken } from '@/lib/auth';
+import { Navigation, Sidebar } from '@/components';
+
+export default function ChatKitPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ username: string; id: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (!isAuthenticated()) {
+      router.push('/signin');
+      return;
+    }
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+  }, [mounted, router]);
+
+  if (!mounted || !user) {
+    return (
+      <div className="loading-container">
+        <span className="spinner" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Navigation />
+      <Sidebar />
+      <div className="chat-page">
+        <div className="chat-header">
+          <div className="header-content">
+            <h1>ActionMind AI</h1>
+            <p>AI-powered task management</p>
+          </div>
+        </div>
+
+        <main className="chat-main">
+          {/* CRITICAL: NO props passed! Component created ONCE, never destroyed */}
+          <ChatKitContent />
+        </main>
+      </div>
+
+      <style jsx>{`
+        .loading-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+        }
+
+        .spinner {
+          width: 48px;
+          height: 48px;
+          border: 3px solid #f3f3f3;
+          border-top: 3px solid #8B5A2B;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .chat-page {
+          min-height: 100vh;
+          margin-left: 260px;
+          display: flex;
+          flex-direction: column;
+          background: #f5f5f5;
+        }
+
+        .chat-header {
+          background: linear-gradient(135deg, #8B5A2B 0%, #6B4423 100%);
+          padding: 20px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content h1 {
+          color: white;
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+        }
+
+        .header-content p {
+          color: rgba(255, 255, 255, 0.9);
+          margin: 4px 0 0 0;
+          font-size: 14px;
+        }
+
+        .chat-main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+          min-height: calc(100vh - 80px);
+        }
+
+        .chatkit-container {
+          flex: 1;
+          width: 100% !important;
+          height: 100% !important;
+          min-height: calc(100vh - 80px);
+        }
+
+        /* Hide ChatKit thread history sidebar */
+        .chatkit-container [class*="thread-list"],
+        .chatkit-container [class*="sidebar"],
+        .chatkit-container [role="navigation"],
+        .chatkit-container aside {
+          display: none !important;
+        }
+
+        /* Hide ChatKit timestamp/time icons */
+        .chatkit-container [class*="timestamp"],
+        .chatkit-container [class*="time"],
+        .chatkit-container time,
+        .chatkit-container [data-testid*="time"] {
+          display: none !important;
+        }
+
+        /* Hide any message metadata that includes time */
+        .chatkit-container [class*="metadata"],
+        .chatkit-container [class*="message-meta"] {
+          display: none !important;
+        }
+
+        /* Enhanced message styling */
+        .chatkit-container openai-chatkit {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+          .chat-page {
+            margin-left: 0;
+          }
+
+          .chat-header {
+            padding: 16px;
+          }
+
+          .header-content h1 {
+            font-size: 20px;
+          }
+
+          .chat-main {
+            min-height: calc(100vh - 70px);
+          }
+
+          .chatkit-container {
+            min-height: calc(100vh - 70px);
+          }
+        }
+
+        /* Tablet responsive */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .chat-page {
+            margin-left: 200px;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
+
+/**
+ * ChatKit Component with State Persistence
+ *
+ * In development mode, Fast Refresh and parent re-renders cause remounts.
+ * We persist the thread ID to localStorage so we can reconnect to the
+ * same conversation after a remount, preventing message loss.
+ */
+function ChatKitContent() {
+  // CRITICAL: Read localStorage SYNCHRONOUSLY before any hooks
+  // This ensures threadIdRef.current is set before useChatKit runs
+  const getInitialThreadId = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem('chatkit_thread_id');
+      console.log('[ChatKit] Initial render - loaded thread from localStorage:', saved);
+      return saved;
+    } catch {
+      return null;
+    }
+  };
+
+  // Use refs for ALL dynamic values - refs don't cause re-renders
+  const userIdRef = useRef<string | null>(null);
+  const tokenRef = useRef<string | null>(null);
+  const domainKeyRef = useRef<string>('');
+  const threadIdRef = useRef<string | null>(getInitialThreadId()); // Initialize synchronously!
+
+  // Local state for initial loading - this only changes ONCE from false to true
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize refs on mount - runs on every mount (including remounts)
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      userIdRef.current = String(currentUser.id);
+      console.log('[ChatKit] Initialized userId:', userIdRef.current);
+    }
+    tokenRef.current = getToken();
+    domainKeyRef.current = process.env.NEXT_PUBLIC_CHATKIT_DOMAIN_KEY || '';
+
+    // Thread ID is already loaded synchronously in getInitialThreadId()
+    // No need to reload here
+
+    setIsInitialized(true);
+    console.log('[ChatKit] Component initialized (may be remount)');
+  }, []); // EMPTY deps = runs on mount
+
+  // Update token ref when auth state changes (but don't recreate anything)
+  // CRITICAL: This hook MUST be called BEFORE any early returns to satisfy Rules of Hooks
+  useEffect(() => {
+    const updateToken = () => {
+      const newToken = getToken();
+      if (newToken && newToken !== tokenRef.current) {
+        tokenRef.current = newToken;
+        console.log('[ChatKit] Token updated via ref:', !!newToken);
+      }
+    };
+
+    updateToken();
+
+    // Set up interval to refresh token if it expires
+    const interval = setInterval(updateToken, 30000); // Check every 30s
+
+    return () => clearInterval(interval);
+  }, []); // EMPTY deps = stable across renders
+
+  // Create a stable fetch function using refs
+  // CRITICAL: This function NEVER changes, so ChatKit never re-initializes
+  const chatkitFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const urlStr = String(input);
+    const token = tokenRef.current; // Read from ref (not state)
+
+    console.log('[ChatKit Fetch] URL:', urlStr, 'hasToken:', !!token);
+
+    const response = await fetch(input, {
+      ...init,
+      headers: {
+        ...init?.headers,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+    });
+
+    console.log('[ChatKit Fetch] Response status:', response.status);
+    return response;
+  }, []); // EMPTY deps - this function is created ONCE and NEVER changes
+
+  // Create API config ONCE - COMPLETELY STABLE
+  // CRITICAL: ZERO dependencies means this object is created ONCE
+  const apiConfig = useMemo(() => {
+    console.log('[ChatKit] Creating API config - SHOULD ONLY HAPPEN ONCE');
+
+    return {
+      url: 'http://localhost:8000/chatkit',
+      domainKey: domainKeyRef.current || '',
+      fetch: chatkitFetch,
+    };
+  }, []); // EMPTY deps - created ONCE, never recreated
+
+  // Stable event handlers - created ONCE
+  const eventHandlers = useMemo(() => ({
+    onError: ({ error }: { error: Error }) => {
+      console.error('ChatKit error:', error);
+    },
+    onReady: () => {
+      console.log('ChatKit is ready');
+    },
+    onResponseStart: () => {
+      console.log('AI response started');
+    },
+    onResponseEnd: () => {
+      console.log('AI response completed');
+    },
+    onThreadChange: ({ threadId }: { threadId: string | null }) => {
+      console.log('Thread changed:', threadId);
+      // Persist thread ID to localStorage so we can reconnect after remounts
+      if (threadId) {
+        localStorage.setItem('chatkit_thread_id', threadId);
+        threadIdRef.current = threadId;
+        console.log('[ChatKit] Saved thread ID to localStorage:', threadId);
+      }
+    },
+  }), []); // EMPTY deps - created ONCE, never recreated
+
+  // Initialize ChatKit - COMPLETELY STABLE
+  // Use initialThread to reconnect to the last active thread after remounts
+  const chatKit = useChatKit({
+    api: apiConfig,
+    initialThread: threadIdRef.current, // Reconnect to saved thread if exists
+    startScreen: {
+      greeting: 'What can I help you with today?',
+    },
+    ...eventHandlers,
+  });
+
+  // CRITICAL: Early return MUST come AFTER all hooks to satisfy Rules of Hooks
+  // Do NOT render ChatKit until userId is initialized - prevents null userId render issue
+  if (!isInitialized || !userIdRef.current) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '500px' }}>
+        <span className="spinner" />
+      </div>
+    );
+  }
+
+  console.log('[ChatKit] Rendering ChatKit, userId:', userIdRef.current, 'threadId:', threadIdRef.current, 'initialized:', isInitialized);
+
+  return (
+    <ChatKit
+      control={chatKit.control}
+      className="chatkit-container"
+      style={{
+        width: '100%',
+        height: '100%',
+        minHeight: '500px',
+      }}
+    />
+  );
+}

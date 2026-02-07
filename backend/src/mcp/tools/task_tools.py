@@ -174,56 +174,111 @@ class AddTaskTool(BaseMCPTool):
                 user_id=user_id
             )
 
-        # Create task in database
-        try:
+        # CRITICAL FIX: Run sync database operations in a thread pool
+        # This prevents async/sync context issues that cause transactions to not commit properly
+        import asyncio
+
+        def _create_task_in_sync_context():
+            """Synchronous function to create task - runs in thread pool"""
             try:
-                from backend.src.db.session import async_session_maker
-            except ImportError:
-                from src.db.session import async_session_maker
+                from src.services.task import TaskService
+                from src.core.database import SessionLocal
+                from src.models.schemas import TaskCreate
+                from src.models.task import Task as TaskModel
 
-            async with async_session_maker() as session:
-                # Create task directly with all fields
-                completed = (status == "done")
+                # Use sync database session
+                db = SessionLocal()
+                print(f"[DEBUG ADD_TASK] Creating sync session, connection: {db.bind.url if hasattr(db, 'bind') and db.bind else 'no bind'}")
 
-                task = Task(
-                    user_id=_to_int(user_id),  # Use authenticated user ID
-                    title=title,
-                    description=description,
-                    completed=completed,
-                    status=status,
-                    priority=priority
-                )
-                session.add(task)
-                await session.flush()  # Get ID without committing
+                try:
+                    # Create task data schema
+                    task_create = TaskCreate(
+                        title=title,
+                        description=description,
+                        status=status,
+                        priority=priority,
+                        completed=(status == "done")
+                    )
 
-                # Commit the transaction
-                await session.commit()
+                    print(f"[DEBUG ADD_TASK] About to call TaskService.create_task with user_id={_to_int(user_id)}")
 
-                # Store task data for return (convert int IDs to strings for API consistency)
-                task_data = {
-                    "task_id": str(task.id),
-                    "user_id": str(task.user_id),
-                    "title": task.title,
-                    "description": task.description,
-                    "completed": task.completed,
-                    "status": task.status,
-                    "priority": task.priority,
-                    "created_at": task.created_at.isoformat(),
-                    "updated_at": task.updated_at.isoformat()
-                }
+                    # Create task using TaskService (same as tasks API)
+                    user_id_int = _to_int(user_id)
+                    task = TaskService.create_task(db, task_create, user_id_int)
 
-                # Return success with task data
+                    print(f"[DEBUG ADD_TASK] Task created with ID={task.id}, title={task.title}")
+                    print(f"[DEBUG ADD_TASK] Session in_transaction: {db.in_transaction()}")
+
+                    # CRITICAL: Verify the task was actually persisted
+                    # Create a NEW session to verify (to avoid cached data)
+                    verification_db = SessionLocal()
+                    try:
+                        verified_task = verification_db.query(TaskModel).filter(TaskModel.id == task.id).first()
+                        print(f"[DEBUG ADD_TASK] VERIFICATION using new session: task exists = {verified_task is not None}")
+                        if verified_task:
+                            print(f"[DEBUG ADD_TASK] VERIFIED: task.title={verified_task.title}, task.status={verified_task.status}")
+                    finally:
+                        verification_db.close()
+
+                    # Store task data for return (convert all to simple types for JSON serialization)
+                    task_data = {
+                        "task_id": str(task.id),
+                        "user_id": str(task.user_id),
+                        "title": task.title,
+                        "description": task.description or "",
+                        "completed": bool(task.completed),
+                        "status": task.status or "todo",
+                        "priority": task.priority or "medium",
+                        "created_at": task.created_at.isoformat() if task.created_at else "",
+                        "updated_at": task.updated_at.isoformat() if task.updated_at else None
+                    }
+
+                    print(f"[DEBUG ADD_TASK] Returning success with task_data: {task_data}")
+
+                    # Return both success flag and data
+                    return (True, task_data, None)
+
+                except Exception as inner_e:
+                    print(f"[DEBUG ADD_TASK] Exception in sync context: {type(inner_e).__name__}: {str(inner_e)}")
+                    import traceback
+                    traceback.print_exc()
+                    # Rollback to ensure no partial state
+                    db.rollback()
+                    return (False, None, f"Database error: {str(inner_e)}")
+                finally:
+                    print(f"[DEBUG ADD_TASK] Closing database session")
+                    db.close()
+
+            except Exception as outer_e:
+                print(f"[DEBUG ADD_TASK] Exception in sync wrapper: {type(outer_e).__name__}: {str(outer_e)}")
+                import traceback
+                traceback.print_exc()
+                return (False, None, f"Setup error: {str(outer_e)}")
+
+        # Run the sync database operation in a thread pool
+        # This is critical when calling sync code from async context
+        try:
+            success, data, error = await asyncio.to_thread(_create_task_in_sync_context)
+
+            if success:
                 return MCPToolResult(
                     success=True,
-                    data=task_data,
-                    user_id=str(task.user_id)
+                    data=data,
+                    user_id=data.get("user_id", user_id) if data else user_id
                 )
-
+            else:
+                return MCPToolResult(
+                    success=False,
+                    error=error or "Unknown error occurred",
+                    user_id=user_id
+                )
         except Exception as e:
-            # Handle database errors
+            print(f"[DEBUG ADD_TASK] Exception in to_thread: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return MCPToolResult(
                 success=False,
-                error=f"Failed to create task: {str(e)}",
+                error=f"Failed to execute database operation: {str(e)}",
                 user_id=user_id
             )
 
@@ -284,40 +339,57 @@ class ListTasksTool(BaseMCPTool):
         Returns:
             MCPToolResult with list of tasks
         """
-        status = kwargs.get("status", "all")
-        try:
+        status_filter = kwargs.get("status", "all")
+        import asyncio
+
+        def _list_tasks_sync():
+            """Synchronous function to list tasks - runs in thread pool"""
             try:
-                from backend.src.db.session import async_session_maker
-            except ImportError:
-                from src.db.session import async_session_maker
+                from src.services.task import TaskService
+                from src.core.database import SessionLocal
 
-            async with async_session_maker() as session:
-                tasks = await TaskRepository.list_tasks(session, user_id, status)
+                # Use sync database session
+                db = SessionLocal()
+                try:
+                    user_id_int = _to_int(user_id)
+                    tasks = TaskService.get_all_tasks(db, user_id_int, skip=0, limit=100)
 
-                # Format tasks for response (convert int IDs to strings)
-                task_list = []
-                for task in tasks:
-                    task_list.append({
-                        "task_id": str(task.id),
-                        "title": task.title,
-                        "description": task.description,
-                        "completed": task.completed,
-                        "status": task.status,
-                        "priority": task.priority,
-                        "created_at": task.created_at.isoformat()
-                    })
+                    # Filter by status if needed
+                    if status_filter == "pending":
+                        tasks = [t for t in tasks if not t.completed]
+                    elif status_filter == "completed":
+                        tasks = [t for t in tasks if t.completed]
 
-                result_data = {
-                    "tasks": task_list,
-                    "count": len(task_list)
-                }
+                    # Format tasks for response (convert int IDs to strings)
+                    task_list = []
+                    for task in tasks:
+                        task_list.append({
+                            "task_id": str(task.id),
+                            "title": task.title,
+                            "description": task.description or "",
+                            "completed": bool(task.completed),
+                            "status": task.status or "todo",
+                            "priority": task.priority or "medium",
+                            "created_at": task.created_at.isoformat() if task.created_at else ""
+                        })
 
-                return MCPToolResult(
-                    success=True,
-                    data=result_data,
-                    user_id=user_id
-                )
+                    result_data = {
+                        "tasks": task_list,
+                        "count": len(task_list)
+                    }
 
+                    return (True, result_data, None)
+                finally:
+                    db.close()
+            except Exception as e:
+                return (False, None, str(e))
+
+        try:
+            success, data, error = await asyncio.to_thread(_list_tasks_sync)
+            if success:
+                return MCPToolResult(success=True, data=data, user_id=user_id)
+            else:
+                return MCPToolResult(success=False, error=error, user_id=user_id)
         except Exception as e:
             return MCPToolResult(
                 success=False,
@@ -391,60 +463,59 @@ class DeleteTaskTool(BaseMCPTool):
                 user_id=user_id
             )
 
-        try:
+        import asyncio
+
+        def _delete_task_sync():
+            """Synchronous function to delete task - runs in thread pool"""
             try:
-                from backend.src.db.session import async_session_maker
-            except ImportError:
-                from src.db.session import async_session_maker
+                from src.services.task import TaskService
+                from src.core.database import SessionLocal
 
-            async with async_session_maker() as session:
-                # First, find the task by title
-                tasks = await TaskRepository.list_tasks(session, user_id)
-                matching_task = None
+                # Use sync database session
+                db = SessionLocal()
+                try:
+                    user_id_int = _to_int(user_id)
 
-                # Try exact match first
-                for task in tasks:
-                    if task.title.lower() == title.lower():
-                        matching_task = task
-                        break
+                    # Get all tasks for the user
+                    tasks = TaskService.get_all_tasks(db, user_id_int, skip=0, limit=100)
 
-                # If no exact match, try partial match
-                if not matching_task:
+                    # Try exact match first
+                    matching_task = None
                     for task in tasks:
-                        if title.lower() in task.title.lower():
+                        if task.title.lower() == title.lower():
                             matching_task = task
                             break
 
-                if not matching_task:
-                    return MCPToolResult(
-                        success=False,
-                        error=f"Task '{title}' not found",
-                        user_id=user_id
-                    )
+                    # If no exact match, try partial match
+                    if not matching_task:
+                        for task in tasks:
+                            if title.lower() in task.title.lower():
+                                matching_task = task
+                                break
 
-                # Delete the task
-                deleted = await TaskRepository.delete_task(session, user_id, matching_task.id)
+                    if not matching_task:
+                        return (False, None, f"Task '{title}' not found")
 
-                # Commit the transaction
-                await session.commit()
+                    # Delete the task
+                    TaskService.delete_task(db, matching_task.id, user_id_int)
 
-                if deleted:
-                    return MCPToolResult(
-                        success=True,
-                        data={
-                            "deleted": True,
-                            "title": matching_task.title,
-                            "task_id": str(matching_task.id)  # Convert int to string
-                        },
-                        user_id=user_id
-                    )
-                else:
-                    return MCPToolResult(
-                        success=False,
-                        error=f"Failed to delete task '{title}'",
-                        user_id=user_id
-                    )
+                    return (True, {
+                        "deleted": True,
+                        "title": matching_task.title,
+                        "task_id": str(matching_task.id)
+                    }, None)
 
+                finally:
+                    db.close()
+            except Exception as e:
+                return (False, None, str(e))
+
+        try:
+            success, data, error = await asyncio.to_thread(_delete_task_sync)
+            if success:
+                return MCPToolResult(success=True, data=data, user_id=user_id)
+            else:
+                return MCPToolResult(success=False, error=error, user_id=user_id)
         except Exception as e:
             return MCPToolResult(
                 success=False,
@@ -510,82 +581,80 @@ class CompleteTaskTool(BaseMCPTool):
             MCPToolResult with completion confirmation
         """
         title = kwargs.get("title")
+        import asyncio
 
-        try:
+        def _complete_task_sync():
+            """Synchronous function to complete task - runs in thread pool"""
             try:
-                from backend.src.db.session import async_session_maker
-            except ImportError:
-                from src.db.session import async_session_maker
+                from src.services.task import TaskService
+                from src.core.database import SessionLocal
+                from src.models.schemas import TaskUpdate
 
-            async with async_session_maker() as session:
-                # If no title provided, get the most recent pending task
-                if not title:
-                    tasks = await TaskRepository.list_tasks(session, user_id, status="pending")
-                    if tasks:
-                        matching_task = tasks[0]  # Most recent pending task
-                        title = matching_task.title
-                    else:
-                        return MCPToolResult(
-                            success=False,
-                            error="No pending tasks found to complete",
-                            user_id=user_id
-                        )
-                else:
-                    # Find the task by title
-                    tasks = await TaskRepository.list_tasks(session, user_id)
-                    matching_task = None
+                # Use sync database session
+                db = SessionLocal()
+                try:
+                    user_id_int = _to_int(user_id)
 
-                    # Try exact match first
-                    for task in tasks:
-                        if task.title.lower() == title.lower():
-                            matching_task = task
-                            break
+                    # Get all tasks for the user
+                    tasks = TaskService.get_all_tasks(db, user_id_int, skip=0, limit=100)
 
-                    # If no exact match, try partial match
-                    if not matching_task:
+                    # If no title provided, get the most recent pending task
+                    if not title:
+                        matching_task = None
                         for task in tasks:
-                            if title.lower() in task.title.lower():
+                            if not task.completed:
+                                matching_task = task
+                                break
+                        if not matching_task:
+                            return (False, None, "No pending tasks found to complete")
+                    else:
+                        # Find the task by title
+                        matching_task = None
+                        # Try exact match first
+                        for task in tasks:
+                            if task.title.lower() == title.lower():
                                 matching_task = task
                                 break
 
-                    if not matching_task:
-                        return MCPToolResult(
-                            success=False,
-                            error=f"Task '{title}' not found",
-                            user_id=user_id
-                        )
+                        # If no exact match, try partial match
+                        if not matching_task:
+                            for task in tasks:
+                                if title.lower() in task.title.lower():
+                                    matching_task = task
+                                    break
 
-                # Update task to completed (both completed and status fields)
-                result = await session.execute(
-                    sql_update(Task)
-                    .where(Task.id == matching_task.id, Task.user_id == _to_int(user_id))
-                    .values(completed=True, status="done")
-                    .returning(Task)
-                )
+                        if not matching_task:
+                            return (False, None, f"Task '{title}' not found")
 
-                # Commit the transaction
-                await session.commit()
-
-                updated_task = result.scalar_one_or_none()
-                if updated_task:
-                    return MCPToolResult(
-                        success=True,
-                        data={
-                            "completed": True,
-                            "status": "done",
-                            "title": updated_task.title,
-                            "task_id": str(updated_task.id),
-                            "completed_at": updated_task.updated_at.isoformat()
-                        },
-                        user_id=user_id
+                    # Update task to completed
+                    update_data = TaskUpdate(
+                        title=matching_task.title,
+                        description=matching_task.description,
+                        completed=True,
+                        status="done",
+                        priority=matching_task.priority
                     )
-                else:
-                    return MCPToolResult(
-                        success=False,
-                        error=f"Failed to complete task '{title}'",
-                        user_id=user_id
-                    )
+                    updated_task = TaskService.update_task(db, matching_task.id, update_data, user_id_int)
 
+                    return (True, {
+                        "completed": True,
+                        "status": "done",
+                        "title": updated_task.title,
+                        "task_id": str(updated_task.id),
+                        "completed_at": updated_task.updated_at.isoformat() if updated_task.updated_at else None
+                    }, None)
+
+                finally:
+                    db.close()
+            except Exception as e:
+                return (False, None, str(e))
+
+        try:
+            success, data, error = await asyncio.to_thread(_complete_task_sync)
+            if success:
+                return MCPToolResult(success=True, data=data, user_id=user_id)
+            else:
+                return MCPToolResult(success=False, error=error, user_id=user_id)
         except Exception as e:
             return MCPToolResult(
                 success=False,
@@ -679,101 +748,92 @@ class SetTaskStatusTool(BaseMCPTool):
                 user_id=user_id
             )
 
-        try:
+        import asyncio
+
+        def _set_status_sync():
+            """Synchronous function to set task status - runs in thread pool"""
             try:
-                from backend.src.db.session import async_session_maker
-            except ImportError:
-                from src.db.session import async_session_maker
+                from src.services.task import TaskService
+                from src.core.database import SessionLocal
+                from src.models.schemas import TaskUpdate
 
-            async with async_session_maker() as session:
-                matching_task = None
+                # Use sync database session
+                db = SessionLocal()
+                try:
+                    user_id_int = _to_int(user_id)
 
-                # PRIORITY 1: If task_id is provided, use it directly
-                if task_id:
-                    # Get task by ID
-                    tasks = await TaskRepository.list_tasks(session, user_id)
-                    for task in tasks:
-                        if str(task.id) == str(task_id):
-                            matching_task = task
-                            break
+                    # Get all tasks for the user
+                    tasks = TaskService.get_all_tasks(db, user_id_int, skip=0, limit=100)
 
-                    if not matching_task:
-                        return MCPToolResult(
-                            success=False,
-                            error=f"Task with ID '{task_id}' not found",
-                            user_id=user_id
-                        )
+                    matching_task = None
 
-                # PRIORITY 2: If title is provided, find by title
-                elif title:
-                    # Find the task by title
-                    tasks = await TaskRepository.list_tasks(session, user_id)
-
-                    # Try exact match first
-                    for task in tasks:
-                        if task.title.lower() == title.lower():
-                            matching_task = task
-                            break
-
-                    # If no exact match, try partial match
-                    if not matching_task:
+                    # PRIORITY 1: If task_id is provided, use it directly
+                    if task_id:
                         for task in tasks:
-                            if title.lower() in task.title.lower():
+                            if str(task.id) == str(task_id):
                                 matching_task = task
                                 break
 
-                    if not matching_task:
-                        return MCPToolResult(
-                            success=False,
-                            error=f"Task '{title}' not found",
-                            user_id=user_id
-                        )
+                        if not matching_task:
+                            return (False, None, f"Task with ID '{task_id}' not found")
 
-                # PRIORITY 3: Fallback to most recent task
-                else:
-                    tasks = await TaskRepository.list_tasks(session, user_id)
-                    if tasks:
-                        matching_task = tasks[0]  # Most recent task
+                    # PRIORITY 2: If title is provided, find by title
+                    elif title:
+                        # Try exact match first
+                        for task in tasks:
+                            if task.title.lower() == title.lower():
+                                matching_task = task
+                                break
+
+                        # If no exact match, try partial match
+                        if not matching_task:
+                            for task in tasks:
+                                if title.lower() in task.title.lower():
+                                    matching_task = task
+                                    break
+
+                        if not matching_task:
+                            return (False, None, f"Task '{title}' not found")
+
+                    # PRIORITY 3: Fallback to most recent task
                     else:
-                        return MCPToolResult(
-                            success=False,
-                            error="No tasks found to update",
-                            user_id=user_id
-                        )
+                        if tasks:
+                            matching_task = tasks[0]  # Most recent task
+                        else:
+                            return (False, None, "No tasks found to update")
 
-                # Update both completed and status fields in one operation
-                completed = (status == "done")
-                result = await session.execute(
-                    sql_update(Task)
-                    .where(Task.id == matching_task.id, Task.user_id == _to_int(user_id))
-                    .values(completed=completed, status=status)
-                    .returning(Task)
-                )
-
-                # Commit the transaction
-                await session.commit()
-
-                updated_task = result.scalar_one_or_none()
-                if updated_task:
-                    return MCPToolResult(
-                        success=True,
-                        data={
-                            "updated": True,
-                            "title": updated_task.title,
-                            "task_id": str(updated_task.id),
-                            "status": status,
-                            "completed": completed,
-                            "updated_at": updated_task.updated_at.isoformat()
-                        },
-                        user_id=user_id
+                    # Update task status
+                    completed = (status == "done")
+                    update_data = TaskUpdate(
+                        title=matching_task.title,
+                        description=matching_task.description,
+                        completed=completed,
+                        status=status,
+                        priority=matching_task.priority,
+                        due_date=matching_task.due_date
                     )
-                else:
-                    return MCPToolResult(
-                        success=False,
-                        error=f"Failed to update task '{title}'",
-                        user_id=user_id
-                    )
+                    updated_task = TaskService.update_task(db, matching_task.id, update_data, user_id_int)
 
+                    return (True, {
+                        "updated": True,
+                        "title": updated_task.title,
+                        "task_id": str(updated_task.id),
+                        "status": status,
+                        "completed": completed,
+                        "updated_at": updated_task.updated_at.isoformat() if updated_task.updated_at else None
+                    }, None)
+
+                finally:
+                    db.close()
+            except Exception as e:
+                return (False, None, str(e))
+
+        try:
+            success, data, error = await asyncio.to_thread(_set_status_sync)
+            if success:
+                return MCPToolResult(success=True, data=data, user_id=user_id)
+            else:
+                return MCPToolResult(success=False, error=error, user_id=user_id)
         except Exception as e:
             return MCPToolResult(
                 success=False,
@@ -867,99 +927,90 @@ class SetTaskPriorityTool(BaseMCPTool):
                 user_id=user_id
             )
 
-        try:
+        import asyncio
+
+        def _set_priority_sync():
+            """Synchronous function to set task priority - runs in thread pool"""
             try:
-                from backend.src.db.session import async_session_maker
-            except ImportError:
-                from src.db.session import async_session_maker
+                from src.services.task import TaskService
+                from src.core.database import SessionLocal
+                from src.models.schemas import TaskUpdate
 
-            async with async_session_maker() as session:
-                matching_task = None
+                # Use sync database session
+                db = SessionLocal()
+                try:
+                    user_id_int = _to_int(user_id)
 
-                # PRIORITY 1: If task_id is provided, use it directly
-                if task_id:
-                    # Get task by ID
-                    tasks = await TaskRepository.list_tasks(session, user_id)
-                    for task in tasks:
-                        if str(task.id) == str(task_id):
-                            matching_task = task
-                            break
+                    # Get all tasks for the user
+                    tasks = TaskService.get_all_tasks(db, user_id_int, skip=0, limit=100)
 
-                    if not matching_task:
-                        return MCPToolResult(
-                            success=False,
-                            error=f"Task with ID '{task_id}' not found",
-                            user_id=user_id
-                        )
+                    matching_task = None
 
-                # PRIORITY 2: If title is provided, find by title
-                elif title:
-                    # Find the task by title
-                    tasks = await TaskRepository.list_tasks(session, user_id)
-
-                    # Try exact match first
-                    for task in tasks:
-                        if task.title.lower() == title.lower():
-                            matching_task = task
-                            break
-
-                    # If no exact match, try partial match
-                    if not matching_task:
+                    # PRIORITY 1: If task_id is provided, use it directly
+                    if task_id:
                         for task in tasks:
-                            if title.lower() in task.title.lower():
+                            if str(task.id) == str(task_id):
                                 matching_task = task
                                 break
 
-                    if not matching_task:
-                        return MCPToolResult(
-                            success=False,
-                            error=f"Task '{title}' not found",
-                            user_id=user_id
-                        )
+                        if not matching_task:
+                            return (False, None, f"Task with ID '{task_id}' not found")
 
-                # PRIORITY 3: Fallback to most recent task
-                else:
-                    tasks = await TaskRepository.list_tasks(session, user_id)
-                    if tasks:
-                        matching_task = tasks[0]  # Most recent task
+                    # PRIORITY 2: If title is provided, find by title
+                    elif title:
+                        # Try exact match first
+                        for task in tasks:
+                            if task.title.lower() == title.lower():
+                                matching_task = task
+                                break
+
+                        # If no exact match, try partial match
+                        if not matching_task:
+                            for task in tasks:
+                                if title.lower() in task.title.lower():
+                                    matching_task = task
+                                    break
+
+                        if not matching_task:
+                            return (False, None, f"Task '{title}' not found")
+
+                    # PRIORITY 3: Fallback to most recent task
                     else:
-                        return MCPToolResult(
-                            success=False,
-                            error="No tasks found to update",
-                            user_id=user_id
-                        )
+                        if tasks:
+                            matching_task = tasks[0]  # Most recent task
+                        else:
+                            return (False, None, "No tasks found to update")
 
-                # Update task priority
-                result = await session.execute(
-                    sql_update(Task)
-                    .where(Task.id == matching_task.id, Task.user_id == _to_int(user_id))
-                    .values(priority=priority)
-                    .returning(Task)
-                )
-
-                # Commit the transaction
-                await session.commit()
-
-                updated_task = result.scalar_one_or_none()
-                if updated_task:
-                    return MCPToolResult(
-                        success=True,
-                        data={
-                            "updated": True,
-                            "title": updated_task.title,
-                            "task_id": str(updated_task.id),
-                            "priority": priority,
-                            "updated_at": updated_task.updated_at.isoformat()
-                        },
-                        user_id=user_id
+                    # Update task priority
+                    update_data = TaskUpdate(
+                        title=matching_task.title,
+                        description=matching_task.description,
+                        completed=matching_task.completed,
+                        status=matching_task.status,
+                        priority=priority,
+                        due_date=matching_task.due_date
                     )
-                else:
-                    return MCPToolResult(
-                        success=False,
-                        error=f"Failed to update task '{title}'",
-                        user_id=user_id
-                    )
+                    updated_task = TaskService.update_task(db, matching_task.id, update_data, user_id_int)
 
+                    return (True, {
+                        "updated": True,
+                        "title": updated_task.title,
+                        "task_id": str(updated_task.id),
+                        "priority": priority,
+                        "updated_at": updated_task.updated_at.isoformat() if updated_task.updated_at else None
+                    }, None)
+
+                finally:
+                    db.close()
+            except Exception as e:
+                return (False, None, str(e))
+
+        try:
+            success, data, error = await asyncio.to_thread(_set_priority_sync)
+            if success:
+                return MCPToolResult(success=True, data=data, user_id=user_id)
+            else:
+                return MCPToolResult(success=False, error=error, user_id=user_id)
         except Exception as e:
             return MCPToolResult(
                 success=False,

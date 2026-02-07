@@ -1,0 +1,17 @@
+apiVersion: v2
+name: actionmindai
+description: ActionMindAI - Full-Stack Application with Next.js frontend and FastAPI backend
+version: 1.0.0
+appVersion: "1.0"
+type: application
+keywords:
+  - ActionMindAI
+  - kubernetes
+  - deployment
+  - minikube
+maintainers:
+  - name: ActionMindAI Team
+    email: dev@actionmind.ai
+sources:
+  - https://github.com/your-org/ActionMindAI
+# See docs/aiops.md for AIOps documentation with Gordon and kubectl-ai

@@ -1,0 +1,273 @@
+---
+# Kubernetes Resource Definitions for ActionMind AI
+# Feature: 001-kubernetes-deployment
+# This file defines all Kubernetes entities used in the Helm chart
+
+# ============================================================================
+# Namespace
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/instance: ActionMindAI
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/part-of: ActionMindAI
+
+# ============================================================================
+# Frontend Deployment (Next.js)
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ActionMindAI-frontend
+  namespace: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/instance: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ActionMindAI
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ActionMindAI
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ActionMindAI/frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://ActionMindAI-backend:8000"
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+      restartPolicy: Always
+
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ActionMindAI-frontend
+  namespace: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: frontend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: frontend
+
+# ============================================================================
+# Backend Deployment (FastAPI)
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ActionMindAI-backend
+  namespace: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/instance: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ActionMindAI
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ActionMindAI
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+      - name: backend
+        image: ActionMindAI/backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ActionMindAI-secrets
+              key: DATABASE_URL
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ActionMindAI-secrets
+              key: OPENAI_API_KEY
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ActionMindAI-secrets
+              key: BETTER_AUTH_SECRET
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+      restartPolicy: Always
+
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ActionMindAI-backend
+  namespace: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: backend
+
+# ============================================================================
+# Secret (Sensitive Configuration)
+# ============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ActionMindAI-secrets
+  namespace: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: config
+type: Opaque
+stringData:
+  # These values should be provided via Helm values or external secret management
+  DATABASE_URL: "postgresql://user:pass@host:port/database"
+  OPENAI_API_KEY: "sk-xxxxxxxxxxxxx"
+  BETTER_AUTH_SECRET: "your-secret-here-min-32-chars"
+
+# ============================================================================
+# ConfigMap (Non-Sensitive Configuration)
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ActionMindAI-config
+  namespace: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: config
+data:
+  NEXT_PUBLIC_API_URL: "http://ActionMindAI-backend:8000"
+
+# ============================================================================
+# Ingress (External Access)
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ActionMindAI-ingress
+  namespace: ActionMindAI
+  labels:
+    app.kubernetes.io/name: ActionMindAI
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ActionMindAI.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ActionMindAI-frontend
+            port:
+              number: 3000
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: ActionMindAI-backend
+            port:
+              number: 8000
+
+# ============================================================================
+# Labels Convention
+# ============================================================================
+# All resources follow these label conventions:
+#
+# app.kubernetes.io/name:         ActionMindAI (application name)
+# app.kubernetes.io/component:    [frontend|backend|config|ingress|namespace]
+# app.kubernetes.io/instance:     Resource instance name (if applicable)
+# app.kubernetes.io/part-of:      ActionMindAI (part of larger application)
+# app.kubernetes.io/managed-by:   helm (for Helm-deployed resources)
+#
+# Selectors:
+# - Frontend pods: app.kubernetes.io/name=ActionMindAI, app.kubernetes.io/component=frontend
+# - Backend pods: app.kubernetes.io/name=ActionMindAI, app.kubernetes.io/component=backend
+#

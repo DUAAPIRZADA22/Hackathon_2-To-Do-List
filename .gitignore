@@ -73,3 +73,8 @@ env/
 
 # Docker
 *.log
+
+# Helm secrets (NEVER commit actual secrets)
+**/secrets.yaml
+# But allow example files
+!**/secrets.yaml.example

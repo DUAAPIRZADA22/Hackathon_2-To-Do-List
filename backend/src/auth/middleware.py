@@ -12,11 +12,18 @@ Architecture Principles:
 """
 
 import os
+from pathlib import Path
 from typing import Optional
 
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
+
+# Load .env file at module import time
+env_path = Path(__file__).parent.parent.parent / ".env"
+if env_path.exists():
+    from dotenv import load_dotenv
+    load_dotenv(env_path)
 
 
 # =====================================================

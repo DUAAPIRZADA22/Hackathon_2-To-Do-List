@@ -14,6 +14,10 @@ Architecture Principles:
 - Health checks: Database and service monitoring
 """
 
+# STARTUP MARKER - This proves the latest code is loaded
+import datetime
+print(f"[BACKEND STARTUP] Loading main.py at {datetime.datetime.now()}")
+
 import os
 import uuid
 from contextlib import asynccontextmanager
@@ -183,6 +187,43 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+
+# =====================================================
+# OpenAPI Security Scheme Configuration
+# =====================================================
+
+# Custom OpenAPI schema with JWT Bearer security scheme
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    # Add JWT Bearer security scheme
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter your JWT token (without 'Bearer ' prefix). Get token from /api/auth/signin or /api/auth/signup"
+        }
+    }
+    # Apply security to all routes that need it (chat endpoints)
+    for path, path_item in openapi_schema["paths"].items():
+        for method in path_item.values():
+            if "operationId" in method:
+                # Add security requirement to endpoints that need auth
+                if any(x in path for x in ["/api/", "/chat"]):
+                    method.setdefault("security", []).append({"BearerAuth": []})
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 
 # =====================================================
@@ -375,15 +416,68 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 # =====================================================
-# Health Check Endpoint
+# Health Check Endpoints
 # =====================================================
+
+@app.get("/health/live", tags=["Health"])
+async def liveness_probe():
+    """
+    Liveness probe - lightweight check if the app is running.
+
+    Kubernetes liveness probes use this to detect if the container
+    needs to be restarted. This endpoint should always return 200
+    if the application is running, regardless of database state.
+
+    Returns:
+        Simple alive status - no database check
+    """
+    return {"status": "alive"}
+
+
+@app.get("/health/ready", tags=["Health"])
+async def readiness_probe():
+    """
+    Readiness probe - check if the app is ready to serve traffic.
+
+    Kubernetes readiness probes use this to determine if the pod
+    should receive traffic. Returns 503 if database is not ready.
+
+    Returns:
+        Service ready status with database connection check
+    """
+    logger = structlog.get_logger()
+
+    # Check database connection
+    db_ready = await check_db_connection()
+
+    if not db_ready:
+        logger.warning("Readiness check failed - database not ready")
+        # Return 503 to indicate not ready
+        from fastapi import status as http_status
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "not_ready",
+                "database": "disconnected"
+            }
+        )
+
+    logger.info("Readiness check passed")
+
+    return {
+        "status": "ready",
+        "database": "connected"
+    }
+
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     """
-    Health check endpoint.
+    Comprehensive health check endpoint.
 
     Returns service status, database connection, and MCP server status.
+    This is the main health endpoint for monitoring and debugging.
     """
     logger = structlog.get_logger()
 
@@ -451,6 +545,143 @@ except ImportError:
     except ImportError as e:
         logger = structlog.get_logger()
         logger.warning("Chat router not available", error=str(e))
+
+# ChatKit session router (for getClientSecret mode)
+try:
+    from backend.src.api.chatkit_session import router as chatkit_session_router
+    app.include_router(chatkit_session_router, tags=["ChatKit"])
+except ImportError:
+    try:
+        from src.api.chatkit_session import router as chatkit_session_router
+        app.include_router(chatkit_session_router, tags=["ChatKit"])
+    except ImportError as e:
+        logger = structlog.get_logger()
+        logger.warning("ChatKit session router not available", error=str(e))
+
+# Simple chat router (no database dependency)
+try:
+    from backend.src.api.simple_chat import router as simple_chat_router
+    app.include_router(simple_chat_router, tags=["Chat"])
+except ImportError:
+    try:
+        from src.api.simple_chat import router as simple_chat_router
+        app.include_router(simple_chat_router, tags=["Chat"])
+    except ImportError as e:
+        logger = structlog.get_logger()
+        logger.warning("Simple chat router not available", error=str(e))
+
+# Direct chat router (working solution - calls MCP tools directly)
+try:
+    from backend.src.api.direct_chat import router as direct_chat_router
+    app.include_router(direct_chat_router, tags=["Chat"])
+except ImportError:
+    try:
+        from src.api.direct_chat import router as direct_chat_router
+        app.include_router(direct_chat_router, tags=["Chat"])
+    except ImportError as e:
+        logger = structlog.get_logger()
+        logger.warning("Direct chat router not available", error=str(e))
+
+# =====================================================
+# ChatKit Server Endpoint (Self-hosted, no file scopes required)
+# =====================================================
+
+# Create ChatKit server instance (singleton)
+_chatkit_server = None
+
+def get_chatkit_server():
+    """Get or create the ChatKit server instance."""
+    global _chatkit_server
+    if _chatkit_server is None:
+        try:
+            from backend.src.chatkit.server import create_chatkit_server
+        except ImportError:
+            from src.chatkit.server import create_chatkit_server
+
+        _chatkit_server = create_chatkit_server()
+
+        logger = structlog.get_logger()
+        logger.info("ChatKit server initialized")
+    return _chatkit_server
+
+
+@app.post("/chatkit")
+async def chatkit_endpoint(request: Request):
+    """
+    Main ChatKit endpoint for processing all ChatKit requests.
+
+    This endpoint handles ChatKit protocol requests from the frontend.
+    It streams responses using Server-Sent Events (SSE) for real-time updates.
+
+    The ChatKit server handles:
+    - Thread creation and retrieval
+    - Message processing and streaming
+    - Tool execution (task management tools)
+    - User-scoped data isolation
+
+    Authentication: Bearer token required (from Authorization header or query param)
+    """
+    # Debug: trigger reload
+    from fastapi.responses import StreamingResponse, Response
+    from chatkit.server import StreamingResult
+    from src.auth.middleware import extract_token_from_header_or_query_manual
+
+    # Debug logging
+    print("=" * 80)
+    print(f"[DEBUG /chatkit] Request received at {datetime.datetime.now()}")
+    print(f"[DEBUG /chatkit] Headers: {dict(request.headers)}")
+
+    # Get user ID from token for context
+    auth_header = request.headers.get("Authorization")
+    token = request.query_params.get("token")
+
+    user_id = extract_token_from_header_or_query_manual(auth_header, token)
+
+    print(f"[DEBUG /chatkit] Extracted user_id: {user_id}")
+
+    # Build request context with user_id
+    context = {
+        "user_id": user_id,
+        "request": request
+    }
+
+    logger = structlog.get_logger().bind(user_id=user_id)
+    logger.info("ChatKit request received")
+
+    # Get request body
+    body = await request.body()
+    print(f"[DEBUG /chatkit] Request body length: {len(body)} bytes")
+    print(f"[DEBUG /chatkit] Request body (raw): {body[:1000].decode('utf-8', errors='ignore')}")
+
+    # Get ChatKit server and process request
+    server = get_chatkit_server()
+    print(f"[DEBUG /chatkit] About to call server.process")
+    result = await server.process(body, context)
+    print(f"[DEBUG /chatkit] server.process returned, result type: {type(result).__name__}")
+
+    # Return appropriate response based on result type
+    if isinstance(result, StreamingResult):
+        print(f"[DEBUG /chatkit] Returning StreamingResponse (SSE)")
+        print("=" * 80)
+        return StreamingResponse(result, media_type="text/event-stream")
+    else:
+        print(f"[DEBUG /chatkit] Returning JSON response")
+        print(f"[DEBUG /chatkit] Response preview: {result.json[:200].decode('utf-8', errors='ignore')}")
+        print("=" * 80)
+        return Response(content=result.json, media_type="application/json")
+
+
+@app.post("/chatkit/{path:path}")
+async def chatkit_catchall(request: Request, path: str):
+    """
+    Catch-all endpoint for ChatKit requests to subpaths.
+
+    ChatKit React may make requests to /chatkit/messages, /chatkit/threads, etc.
+    This endpoint routes all of them to the ChatKit server.
+    """
+    print(f"[DEBUG /chatkit/{path}] Received request to subpath")
+    # Forward to the main chatkit endpoint handler
+    return await chatkit_endpoint(request)
 
 
 # =====================================================
