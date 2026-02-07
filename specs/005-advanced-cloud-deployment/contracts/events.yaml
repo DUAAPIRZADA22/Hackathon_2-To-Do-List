@@ -1,0 +1,150 @@
+openapi: 3.0.3
+info:
+  title: ActionMind AI Event Schemas
+  description: Event schemas for event-driven architecture
+  version: 1.0.0
+
+components:
+  schemas:
+    TaskEvent:
+      type: object
+      required:
+        - event_type
+        - task_id
+        - user_id
+        - timestamp
+        - correlation_id
+      properties:
+        event_type:
+          type: string
+          enum: [task_created, task_updated, task_deleted, task_assigned, task_completed, task_uncompleted]
+          description: Type of task event
+        task_id:
+          type: string
+          format: uuid
+          description: Unique identifier of the task
+        project_id:
+          type: string
+          format: uuid
+          description: Project identifier
+        user_id:
+          type: string
+          format: uuid
+          description: User who performed the action
+        timestamp:
+          type: string
+          format: date-time
+          description: When the event occurred (ISO 8601)
+        correlation_id:
+          type: string
+          format: uuid
+          description: Correlation ID for distributed tracing
+        data:
+          type: object
+          properties:
+            title:
+              type: string
+            description:
+              type: string
+            status:
+              type: string
+              enum: [pending, in_progress, completed]
+            assigned_to:
+              type: string
+              format: uuid
+            recurrence_rule:
+              $ref: '#/components/schemas/RecurrenceRule'
+            reminder_settings:
+              $ref: '#/components/schemas/ReminderSettings'
+
+    ReminderEvent:
+      type: object
+      required:
+        - reminder_type
+        - task_id
+        - due_date
+        - user_id
+        - timestamp
+        - correlation_id
+      properties:
+        reminder_type:
+          type: string
+          enum: [due_approaching, overdue]
+        task_id:
+          type: string
+          format: uuid
+        due_date:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        correlation_id:
+          type: string
+          format: uuid
+        data:
+          type: object
+          properties:
+            task_title:
+              type: string
+            message:
+              type: string
+            reminder_time:
+              type: string
+              pattern: '^\d+(m|h|d|w)$'
+
+    RecurrenceRule:
+      type: object
+      properties:
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly]
+        interval:
+          type: integer
+          default: 1
+          minimum: 1
+        days:
+          type: array
+          items:
+            type: string
+            enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+        month_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+        end_date:
+          type: string
+          format: date
+      description: Task recurrence configuration
+
+    ReminderSettings:
+      type: object
+      properties:
+        reminder_times:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            pattern: '^\d+(m|h|d|w)$'
+        notification_method:
+          type: string
+          enum: [email]
+          default: email
+        enabled:
+          type: boolean
+          default: true
+      description: Task reminder configuration
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        correlation_id:
+          type: string
+          format: uuid

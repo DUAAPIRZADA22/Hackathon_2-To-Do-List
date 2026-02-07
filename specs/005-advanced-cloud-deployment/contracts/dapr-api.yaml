@@ -1,0 +1,149 @@
+openapi: 3.0.3
+info:
+  title: ActionMind AI Dapr API
+  description: Dapr event subscription endpoints for ActionMind AI
+  version: 1.0.0
+
+paths:
+  /dapr/subscribe:
+    get:
+      summary: Dapr subscription endpoint
+      description: Returns list of topic subscriptions for Dapr pub/sub
+      operationId: getSubscriptions
+      tags:
+        - Dapr
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+
+  /events/tasks:
+    post:
+      summary: Handle task events from Kafka
+      description: Receives task events from Dapr pub/sub component
+      operationId: handleTaskEvent
+      tags:
+        - Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../events.yaml#/components/schemas/TaskEvent'
+            examples:
+              taskCreated:
+                value:
+                  event_type: task_created
+                  task_id: 550e8400-e29b-41d4-a716-446655440000
+                  project_id: 660e8400-e29b-41d4-a716-446655440000
+                  user_id: 770e8400-e29b-41d4-a716-446655440000
+                  timestamp: '2026-02-08T12:00:00Z'
+                  correlation_id: 880e8400-e29b-41d4-a716-446655440000
+                  data:
+                    title: Complete Phase 5 implementation
+                    status: pending
+      responses:
+        '200':
+          description: Event processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [SUCCESS]
+        '400':
+          description: Invalid event schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /events/reminders:
+    post:
+      summary: Handle reminder events from Kafka
+      description: Receives reminder events from Dapr pub/sub component
+      operationId: handleReminderEvent
+      tags:
+        - Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../events.yaml#/components/schemas/ReminderEvent'
+            examples:
+              dueApproaching:
+                value:
+                  reminder_type: due_approaching
+                  task_id: 550e8400-e29b-41d4-a716-446655440000
+                  due_date: '2026-02-08T17:00:00Z'
+                  user_id: 770e8400-e29b-41d4-a716-446655440000
+                  timestamp: '2026-02-08T16:00:00Z'
+                  correlation_id: 880e8400-e29b-41d4-a716-446655440000
+                  data:
+                    task_title: Complete Phase 5 implementation
+                    message: Task is due in 1 hour
+                    reminder_time: 1h
+      responses:
+        '200':
+          description: Reminder processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [SUCCESS]
+
+components:
+  schemas:
+    Subscription:
+      type: object
+      required:
+        - pubsubname
+        - topic
+        - route
+      properties:
+        pubsubname:
+          type: string
+          description: Dapr pub/sub component name
+          example: kafka-pubsub
+        topic:
+          type: string
+          description: Kafka topic name
+          example: task-events
+        route:
+          type: string
+          description: API route for handling events
+          example: /events/tasks
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        correlation_id:
+          type: string
+          format: uuid
+
+tags:
+  - name: Dapr
+    description: Dapr integration endpoints
+  - name: Events
+    description: Event handling endpoints

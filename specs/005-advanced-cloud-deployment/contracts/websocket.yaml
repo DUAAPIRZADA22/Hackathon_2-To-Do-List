@@ -1,0 +1,79 @@
+openapi: 3.0.3
+info:
+  title: ActionMind AI WebSocket API
+  description: Server-Sent Events (SSE) endpoint for real-time task updates
+  version: 1.0.0
+
+paths:
+  /ws/tasks:
+    get:
+      summary: Real-time task updates
+      description: Server-Sent Events stream for real-time task updates
+      operationId: taskEvents
+      tags:
+        - WebSocket
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          description: Resume from last event ID (for reconnection)
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                taskCreated:
+                  value: |-
+                    event: message
+                    data: {"event_type":"task_created","task_id":"550e8400-e29b-41d4-a716-446655440000","data":{"title":"New task","status":"pending"}}
+                    id: evt_123456
+
+                    event: message
+                    data: {"event_type":"task_assigned","task_id":"550e8400-e29b-41d4-a716-446655440000","data":{"assigned_to":"770e8400-e29b-41d4-a716-446655440000"}}
+                    id: evt_123457
+                taskCompleted:
+                  value: |-
+                    event: message
+                    data: {"event_type":"task_completed","task_id":"550e8400-e29b-41d4-a716-446655440000","data":{"status":"completed"}}
+                    id: evt_123458
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    TaskUpdateEvent:
+      type: object
+      required:
+        - event_type
+        - task_id
+        - data
+      properties:
+        event_type:
+          type: string
+          enum: [task_created, task_updated, task_deleted, task_assigned, task_completed, task_uncompleted]
+        task_id:
+          type: string
+          format: uuid
+        data:
+          type: object
+          properties:
+            title:
+              type: string
+            description:
+              type: string
+            status:
+              type: string
+            assigned_to:
+              type: string
+              format: uuid
+
+tags:
+  - name: WebSocket
+    description: Real-time update endpoints
