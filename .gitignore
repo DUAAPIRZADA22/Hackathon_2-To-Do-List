@@ -78,3 +78,6 @@ env/
 **/secrets.yaml
 # But allow example files
 !**/secrets.yaml.example
+
+# Claude Code temporary files
+tmpclaude-*-cwd
