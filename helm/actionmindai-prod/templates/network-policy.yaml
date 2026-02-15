@@ -1,0 +1,41 @@
+# Network Policy for ActionMind AI
+# Restricts traffic to only necessary communications
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: actionmindai-network-policy
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow pods in same namespace to communicate
+  - from:
+    - podSelector: {}
+  # Allow ingress controller to route traffic
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          networking.k8s.io/policy-group: ingress
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow communication within namespace
+  - to:
+    - podSelector: {}
+  # Allow external API calls (OpenAI, etc.)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443

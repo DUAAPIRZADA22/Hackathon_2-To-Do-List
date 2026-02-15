@@ -1,0 +1,90 @@
+# OKE (Oracle Kubernetes Engine) Production Values
+# Optimized for Oracle Cloud Infrastructure with virtual nodes
+
+namespace: actionmindai
+
+global:
+  environment: production
+  domain: actionmindai.oraclecloud.com  # Update with your domain
+
+# Image configuration
+image:
+  repository: ghcr.io/your-org/actionmindai  # Update with your registry
+  tag: "v1.0.0"
+  pullPolicy: IfNotPresent
+
+# Dapr configuration - DISABLED for OKE virtual nodes (CSI issues)
+# Re-enable when using worker nodes with proper CSI
+dapr:
+  enabled: false
+
+# Database - Use Oracle Autonomous Database or managed PostgreSQL
+database:
+  secretName: postgres-connection-string
+  deployment:
+    enabled: false  # Use managed database in production
+
+# Backend configuration
+backend:
+  enabled: true
+  name: backend
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  logLevel: INFO
+
+# Frontend configuration
+frontend:
+  enabled: true
+  name: frontend
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  logLevel: INFO
+  env:
+    apiUrl: ""
+    nodeEnv: production
+
+# Qdrant vector database - use managed service or statefulset with PVC
+qdrant:
+  enabled: false  # Use managed service in production
+
+# Ingress - OKE uses OCI load balancer
+ingress:
+  enabled: true
+  className: oci  # OCI Ingress Controller
+  host: actionmindai.your-domain.com  # UPDATE THIS
+  tls:
+    enabled: false  # Set to true and configure certificate
+
+# Resource quotas
+resourceQuota:
+  enabled: true
+  requests:
+    cpu: "4"
+    memory: "8Gi"
+  limits:
+    cpu: "8"
+    memory: "16Gi"
+
+# Network policies
+networkPolicy:
+  enabled: true

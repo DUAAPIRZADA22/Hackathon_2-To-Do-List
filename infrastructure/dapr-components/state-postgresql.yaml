@@ -1,0 +1,33 @@
+# Dapr PostgreSQL State Store Component
+# This component enables state management via PostgreSQL
+apiVersion: dapr.io/v1
+kind: Component
+metadata:
+  name: postgres-state
+  namespace: default
+spec:
+  type: state.postgresql
+  version: v1
+  metadata:
+    # PostgreSQL connection string (from Kubernetes secret)
+    - name: connectionString
+      secretKeyRef:
+        name: postgres-connection-string
+        key: connection-string
+    # Table name for state storage
+    - name: table
+      value: "dapr_state"
+    # Clean up expired state entries
+    - name: cleanupInterval
+      value: "1h"
+    # Maximum concurrent connections
+    - name: maxConcurrentCalls
+      value: "10"
+    # Timeout for state operations
+    - name: timeoutInSeconds
+      value: "10"
+scopes:
+  - backend
+  - recurring-task-service
+  - notification-service
+  - realtime-sync-service

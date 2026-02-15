@@ -1,0 +1,67 @@
+# Google Kubernetes Engine (GKE) Cluster Configuration
+# For Google Cloud Platform deployment
+
+apiVersion: container.cnrm.cloud.google.com/v1beta1
+kind: ContainerCluster
+metadata:
+  name: actionmindai-prod
+  namespace: default
+  annotations:
+    cnrm.cloud.google.com/project-id: {{ project_id }}
+spec:
+  location: {{ region | default "us-central1" }}
+  initialNodeCount: 3
+  networkRef:
+    name: {{ network_name | default "default" }}
+  subnetworkRef:
+    name: {{ subnet_name | default "default" }}
+
+  # Node pool configuration
+  nodePools:
+  - name: worker-pool
+    initialNodeCount: 3
+    version: {{ kubernetes_version | default "1.29.1-gke.1000" }}
+    config:
+      machineType: {{ machine_type | default "e2-medium" }}
+      diskSizeGb: 50
+      diskType: pd-standard
+      oauthScopes:
+      - "https://www.googleapis.com/auth/devstorage.read_only"
+      - "https://www.googleapis.com/auth/logging.write"
+      - "https://www.googleapis.com/auth/monitoring"
+      - "https://www.googleapis.com/auth/service.management"
+      - "https://www.googleapis.com/auth/servicecontrol"
+
+      # Labels and taints
+      labels:
+        app: actionmindai
+        environment: production
+      taints: []
+
+      # Preemptible nodes (optional)
+      preemptible: false
+
+    autoscaling:
+      enabled: true
+      minNodeCount: 2
+      maxNodeCount: 10
+
+  # Cluster networking
+  networkingMode: VPC_NATIVE
+  clusterNetwork:
+    services: 10.96.0.0/16
+    pods: 10.244.0.0/16
+
+  # Add-ons
+  addons:
+    httpLoadBalancing: enabled
+    networkPolicyConfig: disabled
+    dnsCache: enabled
+
+  # Security
+    privateCluster: false
+    masterAuthorizedNetworksConfig: {}
+
+  # Logging and monitoring
+    loggingService: logging.googleapis.com/kubernetes
+    monitoringService: monitoring.googleapis.com/kubernetes

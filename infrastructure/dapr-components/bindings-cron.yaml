@@ -1,0 +1,22 @@
+# Dapr Cron Binding for Reminder Checks
+# This component triggers periodic reminder checks
+apiVersion: dapr.io/v1
+kind: Component
+metadata:
+  name: reminder-check-cron
+  namespace: default
+spec:
+  type: bindings.cron
+  version: v1
+  metadata:
+    # Cron schedule: Check every 5 minutes
+    - name: schedule
+      value: "*/5 * * * *"
+    # Timezone for schedule
+    - name: timeZone
+      value: "UTC"
+    # Disable the binding by default (enable per environment)
+    - name: direction
+      value: "input"
+scopes:
+  - notification-service

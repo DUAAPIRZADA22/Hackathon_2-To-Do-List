@@ -1,0 +1,37 @@
+# Resource Quota for ActionMind AI namespace
+# Limits resource consumption to prevent runaway pods
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: actionmindai-resource-quota
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+spec:
+  hard:
+    requests.cpu: {{ .Values.resourceQuota.requests.cpu | default "4" }}
+    requests.memory: {{ .Values.resourceQuota.requests.memory | default "8Gi" }}
+    limits.cpu: {{ .Values.resourceQuota.limits.cpu | default "8" }}
+    limits.memory: {{ .Values.resourceQuota.limits.memory | default "16Gi" }}
+    requests.nvidia.com/gpu: "0"
+    requests.ephemeral-storage: "10Gi"
+    limits.ephemeral-storage: "20Gi"
+    persistentvolumeclaims: "4"
+---
+# LimitRange to set default resource requests/limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: actionmindai-limit-range
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container

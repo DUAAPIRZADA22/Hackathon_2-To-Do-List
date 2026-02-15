@@ -1,0 +1,30 @@
+# PodDisruptionBudget for Backend
+# Ensures minimum availability during voluntary disruptions
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.backend.name | default "backend" }}-pdb
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "actionmindai.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+---
+# PodDisruptionBudget for Frontend
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.frontend.name | default "frontend" }}-pdb
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "actionmindai.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend

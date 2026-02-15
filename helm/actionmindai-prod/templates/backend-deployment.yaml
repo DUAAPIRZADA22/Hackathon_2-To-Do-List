@@ -1,0 +1,165 @@
+# Backend Deployment with Dapr Annotations (T076)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.name | default "backend" }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: actionmindai
+spec:
+  replicas: {{ .Values.backend.replicaCount | default 2 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "actionmindai.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "actionmindai.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+      annotations:
+        {{- if .Values.dapr.enabled }}
+        # Dapr sidecar injection (T076)
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "{{ .Values.backend.dapr.appId | default "backend-api" }}"
+        dapr.io/app-port: "{{ .Values.backend.service.targetPort | default 8000 }}"
+        dapr.io/enable-app-health-check: "true"
+        dapr.io/app-health-check-path: "/health"
+        dapr.io/health-probe-delay: "10s"
+        dapr.io/health-probe-interval: "30s"
+        dapr.io/log-level: "{{ .Values.dapr.logLevel | default "info" }}"
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: "9090"
+        dapr.io/enable-api-logging: "true"
+        {{- end }}
+    spec:
+      {{- if .Values.image.credentials }}
+      imagePullSecrets:
+      - name: {{ .Values.image.credentials.secretName | default "registry-credentials" }}
+      {{- end }}
+      containers:
+      - name: backend
+        image: "{{ .Values.image.repository }}-backend:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.backend.service.targetPort | default 8000 }}
+          protocol: TCP
+        {{- if .Values.dapr.enabled }}
+        - name: dapr-metrics
+          containerPort: 9090
+          protocol: TCP
+        {{- end }}
+        env:
+        # Database connection (from secret)
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.secretName | default "postgres-connection-string" }}
+              key: connection-string
+        # OpenAI API key (from secret)
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.openai.secretName | default "openai-api-key" }}
+              key: api-key
+        # Application secret (from secret)
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.backend.secretName | default "app-secrets" }}
+              key: secret-key
+        # Frontend URLs for CORS (allowed origins)
+        - name: FRONTEND_URL
+          value: "http://localhost:3000,http://127.0.0.1:3000,http://localhost:4200"
+        # Qdrant vector database URL (internal K8s service)
+        - name: QDRANT_URL
+          value: {{ .Values.qdrant.url | default "http://qdrant.default.svc.cluster.local:6333" }}
+        # Optional: Gemini API key
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.gemini.secretName | default "gemini-api-key" }}
+              key: api-key
+          optional: true
+        # Optional: OpenRouter API key
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.openrouter.secretName | default "openrouter-api-key" }}
+              key: api-key
+          optional: true
+        # Python environment
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: LOG_LEVEL
+          value: {{ .Values.backend.logLevel | default "INFO" }}
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+        # Startup probe - gives app time to initialize before liveness checks
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 12  # 60s total startup time
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 60  # After startup completes
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - sleep 15  # Allow time for connections to drain
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.backend.name | default "backend" }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  type: {{ .Values.backend.service.type | default "ClusterIP" }}
+  ports:
+  - name: http
+    port: {{ .Values.backend.service.port | default 80 }}
+    targetPort: http
+    protocol: TCP
+  {{- if .Values.dapr.enabled }}
+  - name: dapr-metrics
+    port: 9090
+    targetPort: dapr-metrics
+    protocol: TCP
+  {{- end }}
+  selector:
+    {{- include "actionmindai.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: backend

@@ -1,0 +1,64 @@
+# Azure Kubernetes Service (AKS) Cluster Configuration
+# For Microsoft Azure deployment
+
+apiVersion: containerservice.azure.com/v1api20231001
+kind: ManagedCluster
+metadata:
+  name: actionmindai-prod
+  namespace: default
+spec:
+  location: {{ location | default "eastus" }}
+  identity:
+    type: SystemAssigned
+  properties:
+    # Kubernetes version
+    kubernetesVersion: {{ kubernetes_version | default "1.29.0" }}
+
+    # DNS prefix
+    dnsPrefix: actionmindai-prod
+
+    # Agent pool configuration
+    agentPoolProfiles:
+    - name: workerpool
+      count: 3
+      vmSize: {{ vm_size | default "Standard_DS2_v2" }}
+      osDiskSizeGB: 50
+      osDiskType: Managed
+      osType: Linux
+      enableAutoScaling: true
+      minCount: 2
+      maxCount: 10
+      type: VirtualMachineScaleSets
+      mode: System
+      vnetSubnetID: {{ subnet_id }}
+      # Node labels
+      labels:
+        app: actionmindai
+        environment: production
+
+    # Network profile
+    networkProfile:
+      networkPlugin: azure
+      networkPolicy: azure
+      loadBalancerSku: standard
+      outboundType: loadBalancer
+
+    # API server access
+    apiServerAccessProfile:
+      enablePrivateCluster: false
+
+    # Add-ons
+    addonProfiles:
+      azurepolicy:
+        enabled: false
+      httpApplicationRouting:
+        enabled: true
+      monitoring:
+        enabled: true
+      ingress:
+        enabled: true
+
+    # Pod identity
+    azureMonitorProfile:
+      metrics:
+        enabled: true

@@ -1,0 +1,20 @@
+# Kafka Topic: Task Events
+# Events for all task CRUD operations
+apiVersion: kafka.redpanda.com/v1alpha1
+kind: Topic
+metadata:
+  name: task-events
+  namespace: default
+spec:
+  topicName: task-events
+  partitions: 3
+  replicationFactor: 1
+  config:
+    # Retention: 7 days
+    retention.ms: "604800000"
+    # Segment size: 100MB
+    segment.bytes: "104857600"
+    # Cleanup policy: delete
+    cleanup.policy: "delete"
+    # Compression type: lz4
+    compression.type: "lz4"

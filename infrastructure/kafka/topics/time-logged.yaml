@@ -1,0 +1,20 @@
+# Kafka Topic: Time Logged
+# Events for time tracking (future feature)
+apiVersion: kafka.redpanda.com/v1alpha1
+kind: Topic
+metadata:
+  name: time-logged
+  namespace: default
+spec:
+  topicName: time-logged
+  partitions: 1
+  replicationFactor: 1
+  config:
+    # Retention: 30 days (audit trail)
+    retention.ms: "2592000000"
+    # Segment size: 100MB
+    segment.bytes: "104857600"
+    # Cleanup policy: delete
+    cleanup.policy: "delete"
+    # Compression type: lz4
+    compression.type: "lz4"

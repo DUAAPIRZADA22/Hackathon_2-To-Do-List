@@ -1,0 +1,63 @@
+# Oracle Container Engine for Kubernetes (OKE) Cluster Configuration
+# For Oracle Cloud Infrastructure deployment
+
+apiVersion: containerengine.oracle.com/v1
+kind: Cluster
+metadata:
+  name: actionmindai-prod
+  namespace: default
+spec:
+  # Cluster configuration
+  name: actionmindai-prod
+  compartmentId: {{ compartment_id }}  # Oracle compartment OCID
+  vcnId: {{ vcn_id }}  # VCN OCID
+  version: {{ kubernetes_version | default "v1.29.1" }}
+
+  # Node pool configuration
+  nodePools:
+  - name: worker-pool
+    size: 3  # Number of nodes
+    shape: {{ node_shape | default "VM.Standard.E4.Flex" }}  # Flexible shape
+
+    # Shape configuration (for E4.Flex)
+    ocpus: 2
+    memory: 16  # GB
+
+    # Node configuration
+    nodeConfig:
+      sizeInGBs: 50  # Boot volume size
+      sshPublicKey: {{ ssh_public_key }}
+
+    # Subnet configuration
+    subnetId: {{ subnet_id }}
+
+    # Labels
+    labels:
+      app: actionmindai
+      environment: production
+
+    # Taints (optional)
+    taints: []
+
+  # Network configuration
+  network:
+    cniType: "FLANNEL"  # Or "OCI_VCN"
+    podsCidr: "10.244.0.0/16"
+    servicesCidr: "10.96.0.0/16"
+
+  # Add-ons
+  addons:
+  - name: kube-dashboard
+    enabled: false
+  - name: ingress
+    enabled: true
+  - name: calico
+    enabled: false
+
+  # Kubernetes API endpoint
+  endpoint:
+    type: "PUBLIC"  # Or "PRIVATE"
+
+  # Security
+  security:
+    enabled: true

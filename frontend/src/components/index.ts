@@ -7,3 +7,6 @@ export { ThemeToggle } from './ThemeToggle';
 export { Navigation } from './Navigation';
 export { Sidebar } from './Sidebar';
 export { TaskAnalytics } from './TaskAnalytics';
+export { RecurringTaskForm } from './tasks/RecurringTaskForm';
+export { ReminderSettingsForm } from './tasks/ReminderSettingsForm';
+export { TaskWebSocket } from './websocket/TaskWebSocket';

@@ -1,0 +1,37 @@
+# Dapr Kafka Pub/Sub Component
+# This component enables event publishing to Kafka topics
+apiVersion: dapr.io/v1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: default
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker addresses
+    - name: brokers
+      value: "redpanda.default.svc.cluster.local:9092"
+    # Consumer group for event consumption
+    - name: consumerGroup
+      value: "actionmindai-group"
+    # Enable at-least-once delivery semantics
+    - name: enableTLS
+      value: "false"
+    # Authentication (disabled for local Minikube)
+    - name: authRequired
+      value: "false"
+    # Initial offset for new consumer groups
+    - name: initialOffset
+      value: "newest"
+    # Session timeout for consumer
+    - name: sessionTimeout
+      value: "30s"
+    # Heartbeat interval
+    - name: heartbeatInterval
+      value: "3s"
+scopes:
+  - backend
+  - recurring-task-service
+  - notification-service
+  - realtime-sync-service

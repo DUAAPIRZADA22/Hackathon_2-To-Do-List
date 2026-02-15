@@ -1,0 +1,150 @@
+# Frontend Deployment with Dapr Annotations (T077)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.frontend.name | default "frontend" }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: actionmindai
+spec:
+  replicas: {{ .Values.frontend.replicaCount | default 2 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "actionmindai.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "actionmindai.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+      annotations:
+        {{- if .Values.dapr.enabled }}
+        # Dapr sidecar injection (T077)
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "{{ .Values.frontend.dapr.appId | default "frontend-web" }}"
+        dapr.io/app-port: "{{ .Values.frontend.service.targetPort | default 3000 }}"
+        dapr.io/enable-app-health-check: "true"
+        dapr.io/app-health-check-path: "/health"
+        dapr.io/health-probe-delay: "10s"
+        dapr.io/health-probe-interval: "30s"
+        dapr.io/log-level: "{{ .Values.dapr.logLevel | default "info" }}"
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: "9090"
+        dapr.io/enable-api-logging: "true"
+        # Enable Dapr to reach backend service via service invocation
+        dapr.io/config: "appconfig"
+        {{- end }}
+    spec:
+      {{- if .Values.image.credentials }}
+      imagePullSecrets:
+      - name: {{ .Values.image.credentials.secretName | default "registry-credentials" }}
+      {{- end }}
+      containers:
+      - name: frontend
+        image: "{{ .Values.image.repository }}-frontend:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.frontend.service.targetPort | default 3000 }}
+          protocol: TCP
+        {{- if .Values.dapr.enabled }}
+        - name: dapr-metrics
+          containerPort: 9090
+          protocol: TCP
+        {{- end }}
+        env:
+        # Backend API URL (via Dapr service invocation)
+        - name: NEXT_PUBLIC_API_URL
+          value: {{ .Values.frontend.env.apiUrl | default "/api/v1.0/invoke/backend-api/method/api" }}
+        # WebSocket URL (via Dapr or direct service)
+        - name: NEXT_PUBLIC_WS_URL
+          value: {{ .Values.frontend.env.wsUrl | default "ws://localhost:8000" }}
+        # ChatKit configuration
+        - name: NEXT_PUBLIC_CHATKIT_DOMAIN_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.chatkit.secretName | default "chatkit-config" }}
+              key: domain-key
+          optional: true
+        # Next.js configuration
+        - name: NODE_ENV
+          value: {{ .Values.frontend.env.nodeEnv | default "production" }}
+        # Standalone mode for containerized builds
+        - name: NEXT_PRIVATE_STANDALONE
+          value: "true"
+        # Disable telemetry in production
+        - name: NEXT_TELEMETRY_DISABLED
+          value: "1"
+        # Log level
+        - name: LOG_LEVEL
+          value: {{ .Values.frontend.logLevel | default "INFO" }}
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 10 }}
+        # Startup probe - gives Next.js time to compile and serve
+        startupProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6  # 30s total startup time
+        # Next.js has built-in health check at root path (cloud-native-blueprints.md)
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 40  # After startup completes
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - sleep 10  # Allow time for connections to drain
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.frontend.name | default "frontend" }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "actionmindai.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  type: {{ .Values.frontend.service.type | default "ClusterIP" }}
+  ports:
+  - name: http
+    port: {{ .Values.frontend.service.port | default 80 }}
+    targetPort: http
+    protocol: TCP
+  {{- if .Values.dapr.enabled }}
+  - name: dapr-metrics
+    port: 9090
+    targetPort: dapr-metrics
+    protocol: TCP
+  {{- end }}
+  selector:
+    {{- include "actionmindai.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
