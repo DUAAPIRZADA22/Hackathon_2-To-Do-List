@@ -13,6 +13,14 @@ image:
   tag: "v1.0.0"
   pullPolicy: IfNotPresent
 
+# Secrets configuration
+secrets:
+  useExisting: true  # Set to false to generate secrets from values
+
+# ConfigMap configuration
+configMap:
+  name: actionmindai-config
+
 # Dapr configuration - DISABLED for OKE virtual nodes (CSI issues)
 # Re-enable when using worker nodes with proper CSI
 dapr:
@@ -88,3 +96,17 @@ resourceQuota:
 # Network policies
 networkPolicy:
   enabled: true
+
+# Monitoring - disabled for OKE virtual nodes
+monitoring:
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+
+# Monitoring - Disabled for initial deployment
+monitoring:
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
