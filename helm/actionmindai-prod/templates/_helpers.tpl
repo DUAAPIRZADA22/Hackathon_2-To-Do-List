@@ -47,3 +47,14 @@ Selector labels
 app.kubernetes.io/name: {{ include "actionmindai.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+ServiceAccount name
+*/}}
+{{- define "actionmindai.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "actionmindai.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
