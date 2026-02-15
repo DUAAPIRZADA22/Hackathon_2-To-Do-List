@@ -25,18 +25,58 @@ configMap:
 # Re-enable when using worker nodes with proper CSI
 dapr:
   enabled: false
+  logLevel: info
+  metricsPort: 9090
+
+# Application configuration
+app:
+  env: production
+  logLevel: INFO
+  frontendUrl: http://localhost:3000
+  secretKey: change-me-in-production
 
 # Database - Use Oracle Autonomous Database or managed PostgreSQL
 database:
   secretName: postgres-connection-string
   deployment:
     enabled: false  # Use managed database in production
+  url: "postgresql://user:password@host:5432/actionmindai"
+
+# Kafka configuration
+kafka:
+  brokers:
+    - redpanda.default.svc.cluster.local:9092
+  topics:
+    taskEvents: task-events
+    reminders: reminders
+    timeLogged: time-logged
+
+# Notification settings
+notification:
+  fromEmail: noreply@actionmindai.com
+  fromName: "ActionMind AI"
+
+# Recurrence settings
+recurrence:
+  maxInstances: 365
+  defaultEndDate: "+90d"
+
+# Reminder settings
+reminder:
+  defaultOffset: "24h"
+  checkInterval: "5m"
+
+# Real-time settings
+realtime:
+  heartbeatInterval: "30s"
+  maxConnections: 1000
 
 # Backend configuration
 backend:
   enabled: true
   name: backend
   replicaCount: 2
+  secretName: app-secrets
   service:
     type: ClusterIP
     port: 80
@@ -98,13 +138,6 @@ networkPolicy:
   enabled: true
 
 # Monitoring - disabled for OKE virtual nodes
-monitoring:
-  prometheus:
-    enabled: false
-  grafana:
-    enabled: false
-
-# Monitoring - Disabled for initial deployment
 monitoring:
   prometheus:
     enabled: false
