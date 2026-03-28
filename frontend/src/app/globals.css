@@ -543,6 +543,27 @@ a:hover {
   background: var(--border-strong);
 }
 
+/* === Mobile Critical Fixes === */
+/* Prevent horizontal scroll on mobile */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+* {
+  max-width: 100%;
+}
+
+/* Hide scrollbar but keep functionality */
+.mobile-no-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-no-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* === Mobile-First Responsive Breakpoints === */
 
 /* Mobile: < 640px */
@@ -610,4 +631,60 @@ a:hover {
   .textarea {
     font-size: 16px; /* Prevent iOS zoom */
   }
+
+  /* Prevent text overflow */
+  p, span, div, li, a {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  /* Mobile-specific improvements */
+  .container {
+    padding-left: var(--space-3) !important;
+    padding-right: var(--space-3) !important;
+  }
+
+  /* Better mobile card spacing */
+  .card {
+    margin-bottom: var(--space-3);
+  }
+
+  /* Mobile grid adjustments */
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: var(--space-3) !important;
+  }
+
+  /* Mobile button improvements */
+  .btn-lg {
+    padding: var(--space-3) var(--space-5) !important;
+    font-size: var(--text-base) !important;
+  }
+
+  /* Prevent image overflow */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Mobile table scroll */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Small mobile (< 375px) */
+@media (max-width: 374px) {
+  .container {
+    padding-left: var(--space-2) !important;
+    padding-right: var(--space-2) !important;
+  }
+
+  h1 { font-size: var(--text-xl) !important; }
+  h2 { font-size: var(--text-lg) !important; }
+  h3 { font-size: var(--text-base) !important; }
 }

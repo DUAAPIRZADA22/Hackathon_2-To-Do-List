@@ -32,6 +32,7 @@ export function Sidebar() {
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
     { name: 'Tasks', href: '/tasks', icon: '✅' },
+    { name: 'AI Chat', href: '/chat', icon: '🤖' },
     { name: 'Settings', href: '/settings', icon: '⚙️' },
   ];
 
